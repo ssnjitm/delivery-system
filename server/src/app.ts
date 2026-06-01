@@ -3,7 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import 'express-async-errors'; 
 import { logger } from './utils/logger.js';
-// import { logger } from '@/utils/logger.ts';
+import authRoutes from './modules/auth/routes.js';
+import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
 const app: Application = express();
 
@@ -12,6 +13,9 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Core Architectural Service Routes Mounts
+app.use('/api/v1/auth', authRoutes);
 
 // Health Check Endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -28,5 +32,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
-
+//need to add error handler middleware 
+app.use(errorHandler);
 export default app;

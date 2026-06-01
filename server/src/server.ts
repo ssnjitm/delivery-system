@@ -17,10 +17,10 @@ const startServer = async () => {
     await redisClient.ping(); 
 
     server.listen(env.PORT, () => {
-      logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
+      logger.info(`🚀Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
     });
   } catch (error) {
-    logger.error(`💥 Failed to start server components:${error}`);
+    logger.error(`Failed to start server components:${error}`);
     process.exit(1);
   }
 };
