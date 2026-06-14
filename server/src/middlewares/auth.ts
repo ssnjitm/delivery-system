@@ -4,6 +4,15 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: ITokenPayload;
+    }
+  }
+}
+
+
 export class AppError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
@@ -13,7 +22,7 @@ export class AppError extends Error {
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // "Bearer <TOKEN>"
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     throw new AppError(401, 'Access denied. Security session token missing.');

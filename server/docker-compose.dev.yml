@@ -5,62 +5,62 @@ services:
     build:
       context: .
       target: runner
-    container_name: delivery_api
+    container_name: delivery_api_dev
     ports:
-      - "${PORT:-3000}:3000"
+      - "3000:3000"
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
+      - NODE_ENV=development
       - PORT=3000
-      - MONGO_URI=mongodb://root:secret_db_pass@mongodb:27017/delivery_platform?authSource=admin
-      - REDIS_URL=redis://redis:6373
+      - MONGO_URI=mongodb://root:secret_db_pass@mongodb_dev:27017/delivery_platform?authSource=admin
+      - REDIS_URL=redis://redis_dev:6379 # Points directly to your local dev container
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - MAPS_API_KEY=${MAPS_API_KEY}
     depends_on:
-      mongodb:
+      mongodb_dev:
         condition: service_healthy
-      redis:
+      redis_dev:
         condition: service_healthy
     networks:
-      - delivery_network
+      - delivery_network_dev
 
-  mongodb:
+  mongodb_dev:
     image: mongo:6.0
-    container_name: delivery_mongodb
+    container_name: delivery_mongodb_dev
     ports:
       - "27017:27017"
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=secret_db_pass
     volumes:
-      - mongo_data:/data/db
+      - mongo_data_dev:/data/db
     healthcheck:
       test: echo 'db.runCommand({ping:1})' | mongosh localhost:27017/test --quiet
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - delivery_network
+      - delivery_network_dev
 
-  redis:
+  redis_dev:
     image: redis:7.2-alpine
-    container_name: delivery_redis
+    container_name: delivery_redis_dev
     ports:
       - "6373:6379"
     volumes:
-      - redis_data:/data
+      - redis_data_dev:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - delivery_network
+      - delivery_network_dev
 
 networks:
-  delivery_network:
+  delivery_network_dev:
     driver: bridge
 
 volumes:
-  mongo_data:
-  redis_data:
+  mongo_data_dev:
+  redis_data_dev:

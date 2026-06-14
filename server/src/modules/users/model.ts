@@ -13,20 +13,22 @@ export interface IUserBase extends Document {
   password?: string;
   role: UserRole;
   isActive: boolean;
-  isVerified: boolean; // Managed by Admin reviews or OTP approvals
+  isVerified: boolean;
+  refreshToken?: string; 
   createdAt: Date;
   updatedAt: Date;
 }
 
 const BaseUserSchema = new Schema<IUserBase>({
   phone: { type: String, required: true, unique: true, index: true, trim: true },
-  password: { type: String, required: false }, // Optional because of OTP-only logins
+  password: { type: String, required: false },
   role: { type: String, enum: Object.values(UserRole), required: true },
   isActive: { type: Boolean, default: true },
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  refreshToken: { type: String, required: false } 
 }, { 
   timestamps: true, 
-  discriminatorKey: 'role' // Automatically tells Mongoose how to split schemas
+  discriminatorKey: 'role'
 });
 
 export const UserModel = mongoose.model<IUserBase>('User', BaseUserSchema);

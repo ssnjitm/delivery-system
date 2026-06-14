@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: runner
+    container_name: delivery_api_uat
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Injected securely from your UAT platform panel or a remote host server .env file
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_URL=${REDIS_URL} 
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - MAPS_API_KEY=${MAPS_API_KEY}
+    networks:
+      - delivery_network_uat
+
+networks:
+  delivery_network_uat:
+    driver: bridge

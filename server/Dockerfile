@@ -24,6 +24,7 @@ FROM node:20-alpine AS runner
 WORKDIR /usr/src/app
 
 # Enforce secure node runtime environments
+
 ENV NODE_ENV=production
 
 # Copy built production assets from builder stage
