@@ -100,7 +100,7 @@ export class AuthController {
       phone: user.phone
     });
 
-    // ✅ Store refresh token in database
+    // Store refresh token in database
     await AuthService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
 
     res.status(200).json({
@@ -118,7 +118,7 @@ export class AuthController {
     });
   }
 
-  // ✅ NEW: Refresh Token Endpoint
+  // NEW: Refresh Token Endpoint
   public static async refreshToken(req: Request, res: Response): Promise<void> {
     const { refreshToken } = req.body;
 
@@ -162,7 +162,7 @@ export class AuthController {
     });
   }
 
-  // ✅ NEW: Logout Endpoint - removes refresh token
+  // NEW: Logout Endpoint - removes refresh token
   public static async logout(req: Request, res: Response): Promise<void> {
     // req.user comes from authenticateToken middleware
     if (!req.user) {

@@ -1,104 +1,215 @@
+import mongoose, { Schema, Types } from 'mongoose';
 import { UserRole } from '@/types/enums.js';
-import mongoose, { Schema, Document } from 'mongoose';
+import {
+  IUserBase,
+  IVendorUser,
+  IDriverUser,
+  ICustomerUser,
+  INormalUser,
+  IGeoLocation,
+} from '../../types/user.types.js';
 
-//  Define GeoJSON Location Schema Helper
-const PointSchema = new Schema({
-  type: { type: String, enum: ['Point'], default: 'Point', required: true },
-  coordinates: { type: [Number], required: true } // [longitude, latitude]
-}, { _id: false });
+// ============================================
+// Geospatial Schema
+// ============================================
 
-//  Base User Document Interface
-export interface IUserBase extends Document {
-  phone: string;
-  password?: string;
-  role: UserRole;
-  isActive: boolean;
-  isVerified: boolean;
-  refreshToken?: string; 
-  createdAt: Date;
-  updatedAt: Date;
-}
+const GeoLocationSchema = new Schema<IGeoLocation>(
+  {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: {
+        validator: (coords: number[]) => coords.length === 2,
+        message: 'Coordinates must be [longitude, latitude]',
+      },
+    },
+  },
+  { _id: false }
+);
 
-const BaseUserSchema = new Schema<IUserBase>({
-  phone: { type: String, required: true, unique: true, index: true, trim: true },
-  password: { type: String, required: false },
-  role: { type: String, enum: Object.values(UserRole), required: true },
-  isActive: { type: Boolean, default: true },
-  isVerified: { type: Boolean, default: false },
-  refreshToken: { type: String, required: false } 
-}, { 
-  timestamps: true, 
-  discriminatorKey: 'role'
-});
+// Create 2dsphere index for geospatial queries
+GeoLocationSchema.index({ coordinates: '2dsphere' });
 
-export const UserModel = mongoose.model<IUserBase>('User', BaseUserSchema);
+// ============================================
+// Base User Schema
+// ============================================
 
-// VENDOR DISCRIMINATOR SCHEMA
-export interface IVendorUser extends IUserBase {
-  businessName: string;
-  ownerName: string;
-  address: string;
-  pickupLocation: { type: string; coordinates: [number, number] }; // GeoJSON
-  citizenshipDocUrl: string;
-  logoUrl?: string;
-}
+const UserBaseSchema = new Schema<IUserBase>(
+  {
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      select: false, // Don't return password by default
+    },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      required: true,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
+  },
+  {
+    timestamps: true,
+    discriminatorKey: 'role', // MongoDB discriminator key
+    toJSON: {
+      // Typing ret as Record<string, any> resolves ts(2790) for the delete operator
+      transform: (_, ret: Record<string, any>) => {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        delete ret.password;
+        delete ret.refreshToken;
+        return ret;
+      },
+    },
+  }
+);
 
-const VendorSchema = new Schema<IVendorUser>({
-  businessName: { type: String, required: true, trim: true },
-  ownerName: { type: String, required: true, trim: true },
-  address: { type: String, required: true },
-  pickupLocation: { type: PointSchema, required: true } // PRD: Permanent pickup point
-}, { _id: false });
+// Compound indexes for common queries
+UserBaseSchema.index({ role: 1, isActive: 1, isVerified: 1 });
+UserBaseSchema.index({ phone: 1, role: 1 });
 
-// Apply 2dsphere index to permit swift proximity querying
+export const UserModel = mongoose.model<IUserBase>('User', UserBaseSchema);
+
+// ============================================
+// Vendor Discriminator
+// ============================================
+
+const VendorSchema = new Schema<IVendorUser>(
+  {
+    businessName: { type: String, required: true, trim: true, index: true },
+    ownerName: { type: String, required: true, trim: true },
+    address: { type: String, required: true },
+    pickupLocation: { type: GeoLocationSchema, required: true },
+    citizenshipDocUrl: { type: String, required: true },
+    businessLogoUrl: { type: String },
+    rating: { type: Number, default: 0, min: 0, max: 5 },
+    totalDeliveries: { type: Number, default: 0 },
+    rejectionReason: { type: String },
+  },
+  { timestamps: true }
+);
+
+VendorSchema.index({ rating: -1, totalDeliveries: -1 });
 VendorSchema.index({ pickupLocation: '2dsphere' });
 
-export const VendorModel = UserModel.discriminator<IVendorUser>(UserRole.VENDOR, VendorSchema);
+export const VendorModel = UserModel.discriminator<IVendorUser>(
+  UserRole.VENDOR,
+  VendorSchema
+);
 
-// CUSTOMER & NORMAL USER DISCRIMINATOR SCHEMA
-export interface ICustomerUser extends IUserBase {
-  fullName: string;
-  selfieUrl: string; // PRD: Identity verification selfie
-  email?: string;
-  defaultDeliveryAddress?: string;
-}
+// ============================================
+// Driver Discriminator
+// ============================================
 
-const CustomerSchema = new Schema<ICustomerUser>({
-  fullName: { type: String, required: true, trim: true },
-  selfieUrl: { type: String, required: true },
-  email: { type: String, required: false, lowercase: true, trim: true },
-  defaultDeliveryAddress: { type: String, required: false }
-}, { _id: false });
-
-export const CustomerModel = UserModel.discriminator<ICustomerUser>(UserRole.CUSTOMER, CustomerSchema);
-export const NormalUserModel = UserModel.discriminator<ICustomerUser>(UserRole.NORMAL_USER, CustomerSchema);
-
-// DRIVER DISCRIMINATOR SCHEMA
-export interface IDriverUser extends IUserBase {
-  fullName: string;
-  citizenshipDocUrl: string;
-  drivingLicenseUrl: string;
-  bikeModel: string;
-  bluebookUrl: string;
-  selfieUrl: string;
-  emergencyContact: { name: string; phone: string };
-  isOnline: boolean;
-  walletBalance: number;
-}
-
-const DriverSchema = new Schema<IDriverUser>({
-  fullName: { type: String, required: true, trim: true },
-  citizenshipDocUrl: { type: String, required: true },
-  drivingLicenseUrl: { type: String, required: true },
-  bikeModel: { type: String, required: true },
-  bluebookUrl: { type: String, required: true },
-  selfieUrl: { type: String, required: true },
-  emergencyContact: {
-    name: { type: String, required: true },
-    phone: { type: String, required: true }
+const DriverSchema = new Schema<IDriverUser>(
+  {
+    fullName: { type: String, required: true, trim: true },
+    citizenshipDocUrl: { type: String, required: true },
+    drivingLicenseUrl: { type: String, required: true },
+    bikeModel: { type: String, required: true },
+    bluebookUrl: { type: String, required: true },
+    selfieUrl: { type: String, required: true },
+    emergencyContact: {
+      name: { type: String, required: true },
+      phone: { type: String, required: true },
+    },
+    isOnline: { type: Boolean, default: false, index: true },
+    currentLocation: { type: GeoLocationSchema },
+    lastLocationUpdate: { type: Date },
+    rating: { type: Number, default: 0, min: 0, max: 5 },
+    totalDeliveries: { type: Number, default: 0 },
+    rejectionReason: { type: String },
   },
-  isOnline: { type: Boolean, default: false, index: true },
-  walletBalance: { type: Number, default: 0 }
-}, { _id: false });
+  { timestamps: true }
+);
 
-export const DriverModel = UserModel.discriminator<IDriverUser>(UserRole.DRIVER, DriverSchema);
+DriverSchema.index({ isOnline: 1, currentLocation: '2dsphere' });
+DriverSchema.index({ rating: -1, totalDeliveries: -1 });
+
+export const DriverModel = UserModel.discriminator<IDriverUser>(
+  UserRole.DRIVER,
+  DriverSchema
+);
+
+// ============================================
+// Customer Discriminator
+// ============================================
+
+const CustomerSchema = new Schema<ICustomerUser>(
+  {
+    fullName: { type: String, required: true, trim: true },
+    selfieUrl: { type: String, required: true },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      sparse: true,
+      match: /^\S+@\S+\.\S+$/,
+    },
+    defaultDeliveryAddress: { type: String, trim: true },
+  },
+  { timestamps: true }
+);
+
+CustomerSchema.index({ email: 1 }, { sparse: true });
+
+export const CustomerModel = UserModel.discriminator<ICustomerUser>(
+  UserRole.CUSTOMER,
+  CustomerSchema
+);
+
+// ============================================
+// Normal User Discriminator
+// ============================================
+
+const NormalUserSchema = new Schema<INormalUser>(
+  {
+    fullName: { type: String, required: true, trim: true },
+    selfieUrl: { type: String, required: true },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      sparse: true,
+      match: /^\S+@\S+\.\S+$/,
+    },
+  },
+  { timestamps: true }
+);
+
+NormalUserSchema.index({ email: 1 }, { sparse: true });
+
+export const NormalUserModel = UserModel.discriminator<INormalUser>(
+  UserRole.NORMAL_USER,
+  NormalUserSchema
+);

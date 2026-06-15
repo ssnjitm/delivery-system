@@ -16,6 +16,7 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 // Each routes.ts self-registers its schemas into the OpenAPI
 // registry as a side effect of being imported.
 import authRoutes from './modules/auth/routes.js';
+import userRoutes from './modules/users/routes.js';
 
 const app: Application = express();
 
@@ -60,6 +61,8 @@ app.get(
 
 // Core Route Mounts
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+
 
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {

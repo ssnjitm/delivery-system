@@ -3,7 +3,8 @@ export enum UserRole {
   CUSTOMER = 'CUSTOMER',
   NORMAL_USER = 'NORMAL_USER',
   DRIVER = 'DRIVER',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  DISPATCH = 'DISPATCH' 
 }
 
 export enum OrderStatus {
