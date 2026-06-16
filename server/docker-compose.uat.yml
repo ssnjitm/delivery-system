@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -11,7 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Injected securely from your UAT platform panel or a remote host server .env file
+      # Injected dynamically from your original host .env file variables
       - MONGO_URI=${MONGO_URI}
       - REDIS_URL=${REDIS_URL} 
       - JWT_SECRET=${JWT_SECRET}

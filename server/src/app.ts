@@ -5,6 +5,13 @@ import 'express-async-errors';
 import swaggerUi from 'swagger-ui-express';
 import { buildOpenApiDocument } from './utils/swagger.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import path from 'path';
+
+import authRoutes from './modules/auth/routes.js';
+import userRoutes from './modules/users/routes.js';
+import documentRoutes from './modules/documents/routes.js';
+
+
 
 
 // docker compose -f docker-compose.dev.yml up
@@ -15,10 +22,10 @@ import { errorHandler } from './middlewares/errorHandler.middleware.js';
 // Route imports MUST come before buildOpenApiDocument().
 // Each routes.ts self-registers its schemas into the OpenAPI
 // registry as a side effect of being imported.
-import authRoutes from './modules/auth/routes.js';
-import userRoutes from './modules/users/routes.js';
+
 
 const app: Application = express();
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ─────────────────────────────────────────────
 // Global Middleware
@@ -62,6 +69,7 @@ app.get(
 // Core Route Mounts
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/documents', documentRoutes); 
 
 
 // Health Check

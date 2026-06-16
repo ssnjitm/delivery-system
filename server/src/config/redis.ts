@@ -1,15 +1,19 @@
+import dotenv from 'dotenv';
 import { Redis } from 'ioredis';
 import { logger } from "@/utils/logger.js";
-import { env } from './env.js';
+
+// Make sure dotenv is loaded at the absolute top of your entry file (server.ts)
+dotenv.config();
+
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
 // Detect if we are connecting to Upstash (Cloud Redis uses secure TLS 'rediss://')
-const isCloudRedis = env.REDIS_URL.startsWith('rediss://');
+const isCloudRedis = redisUrl.startsWith('rediss://');
 
 // Main Redis Connection Instance
-export const redisClient = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // Required by BullMQ
+export const redisClient = new Redis(redisUrl, {
+  maxRetriesPerRequest: null, 
   enableReadyCheck: true,
-  // CRITICAL: Upstash requires TLS encryption over TCP. Local dev docker does not.
   tls: isCloudRedis ? {} : undefined,
   connectTimeout: 10000, 
 });
@@ -25,7 +29,7 @@ redisClient.on('error', (err: Error) => {
 // Reusable connection object for BullMQ workers and queues
 export const queueConnectionOptions = {
   connection: {
-    url: env.REDIS_URL,
+    url: redisUrl,
     maxRetriesPerRequest: null,
     tls: isCloudRedis ? {} : undefined,
   }
