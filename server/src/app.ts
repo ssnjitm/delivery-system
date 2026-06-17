@@ -11,6 +11,7 @@ import authRoutes from './modules/auth/routes.js';
 import userRoutes from './modules/users/routes.js';
 import documentRoutes from './modules/documents/routes.js';
 import adminRoutes from './modules/admin/routes.js';
+import orderRoutes from './modules/orders/routes.js';
 
 
 
@@ -72,6 +73,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/documents', documentRoutes); 
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/orders', orderRoutes);
 
 
 
