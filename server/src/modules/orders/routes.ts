@@ -1,11 +1,13 @@
-import { Router } from 'express';
-import { authenticateToken,  } from '@/middlewares/auth.js';
+import { Router, Request, Response } from 'express';
+import { authenticateToken, AppError } from '@/middlewares/auth.js';
 import { UserRole } from '@/types/enums.js';
 import { OrdersController } from './controller.js';
 import { validateBody } from '@/middlewares/validation.js';
 import { registry } from '@/utils/swagger.js';
 import { z } from 'zod';
 import { requireRole } from '@/middlewares/role-guard.middleware.js';
+import { DispatchStatusService } from './integration/dispatch-status.service.js';
+import { OrdersService } from './service.js';
 
 const orderRoutes = Router();
 
@@ -97,6 +99,42 @@ orderRoutes.get(
   OrdersController.getOrderByOrderId
 );
 
+// 🆕 Dispatch Status Endpoint
+orderRoutes.get(
+  '/:id/dispatch-status',
+  authenticateToken,
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    if (!req.user) {
+      throw new AppError(401, 'Authentication required.');
+    }
+    
+    const { id } = req.params;
+    
+    // Check if user has access to this order
+    const order = await OrdersService.getOrderById(id);
+    
+    const isVendor = req.user.role === UserRole.VENDOR && 
+                     order.vendorId === req.user.userId;
+    const isDriver = req.user.role === UserRole.DRIVER && 
+                     order.driverId === req.user.userId;
+    const isCustomer = (req.user.role === UserRole.CUSTOMER || req.user.role === UserRole.NORMAL_USER) && 
+                       order.customerId === req.user.userId;
+    const isAdmin = req.user.role === UserRole.ADMIN;
+    const isDispatch = req.user.role === UserRole.DISPATCH;
+    
+    if (!isVendor && !isDriver && !isCustomer && !isAdmin && !isDispatch) {
+      throw new AppError(403, 'You do not have access to this order.');
+    }
+    
+    const status = await DispatchStatusService.getDispatchStatus(id);
+    
+    res.status(200).json({
+      success: true,
+      data: status,
+    });
+  }
+);
+
 // Order Status Management
 orderRoutes.patch(
   '/:id/status',
@@ -148,7 +186,7 @@ registry.registerPath({
   path: '/orders',
   tags: ['Orders'],
   summary: 'Create a new order',
-  description: 'Create a delivery order from vendor or normal user',
+  description: 'Create a delivery order from vendor or normal user - automatically triggers dispatch',
   security: [{ BearerAuth: [] }],
   request: {
     body: {
@@ -160,7 +198,7 @@ registry.registerPath({
     },
   },
   responses: {
-    201: { description: 'Order created successfully' },
+    201: { description: 'Order created successfully - dispatch triggered' },
     400: { description: 'Invalid input' },
     401: { description: 'Unauthorized' },
   },
@@ -181,6 +219,21 @@ registry.registerPath({
   responses: {
     200: { description: 'Orders retrieved' },
     401: { description: 'Unauthorized' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/orders/{id}/dispatch-status',
+  tags: ['Orders', 'Dispatch'],
+  summary: 'Get dispatch status for an order',
+  description: 'Get the current dispatch status including driver search progress',
+  security: [{ BearerAuth: [] }],
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+  responses: {
+    200: { description: 'Dispatch status retrieved' },
+    401: { description: 'Unauthorized' },
+    403: { description: 'Forbidden' },
   },
 });
 

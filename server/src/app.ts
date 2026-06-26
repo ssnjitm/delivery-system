@@ -13,6 +13,7 @@ import documentRoutes from './modules/documents/routes.js';
 import adminRoutes from './modules/admin/routes.js';
 import orderRoutes from './modules/orders/routes.js';
 import dispatchRoutes from './modules/dispatch/routes.js';
+import trackingRoutes from './modules/tracking/routes.js';
 
 
 
@@ -21,7 +22,6 @@ import dispatchRoutes from './modules/dispatch/routes.js';
 // docker compose -f docker-compose.uat.yml up
 
 
-//=================
 // Route imports MUST come before buildOpenApiDocument().
 // Each routes.ts self-registers its schemas into the OpenAPI
 // registry as a side effect of being imported.
@@ -76,6 +76,7 @@ app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/dispatch', dispatchRoutes);
+app.use('/api/v1/tracking', trackingRoutes);
 
 
 

@@ -10,9 +10,11 @@ import {
   IOrderResponse,
   IOrderFilters,
   IOrderStats,
-  IOrderItem,
 } from './types.js';
-
+import { DispatchService } from '../dispatch/service.js';
+import { DispatchRequestModel } from '../dispatch/model.js';
+import { DispatchStatus } from '../dispatch/types.js';
+import { TrackingService } from '../tracking/service.js';
 export class OrdersService {
   // Order Creation
   static async createOrder(payload: ICreateOrderPayload): Promise<IOrderResponse> {
@@ -136,8 +138,17 @@ export class OrdersService {
     const order = new OrderModel(orderData);
     await order.save();
 
-    // TODO: Trigger dispatch engine to find driver
-    // await DispatchService.findDriverForOrder(order._id.toString());
+    // 🚀 TRIGGER DISPATCH ENGINE - Find driver automatically
+    try {
+      await DispatchService.findDriverForOrder({
+        orderId: order._id.toString(),
+      });
+      console.log(`✅ Dispatch triggered for order ${order.orderId}`);
+    } catch (dispatchError) {
+      // Log error but don't fail order creation
+      console.error(`❌ Dispatch error for order ${order.orderId}:`, dispatchError);
+      // Order is created but no driver found yet - will be retried via queue
+    }
 
     return this.toOrderResponse(order);
   }
@@ -279,9 +290,6 @@ export class OrdersService {
 
     await order.save();
 
-    // TODO: Trigger notifications
-    // await NotificationsService.notifyStatusChange(order);
-
     return this.toOrderResponse(order);
   }
 
@@ -319,9 +327,26 @@ export class OrdersService {
     });
 
     await order.save();
+    try {
+      await TrackingService.createTrackingSession(orderId, driverId);
+      await TrackingService.createGeofences(orderId);
+    } catch (error) {
+      console.error('Failed to create tracking session:', error);
+    }
 
-    // TODO: Notify driver and vendor
-    // await NotificationsService.notifyDriverAssigned(order, driver);
+    // 🧹 CLEAN UP DISPATCH - Using proper DispatchStatus enums now
+    try {
+      await DispatchRequestModel.updateMany(
+        {
+          orderId: order._id,
+          status: { $in: [DispatchStatus.PENDING, DispatchStatus.SEARCHING] },
+        },
+        { status: DispatchStatus.ASSIGNED },
+      );
+      console.log(`✅ Dispatch requests marked as ASSIGNED for order ${order.orderId}`);
+    } catch (error) {
+      console.error('Failed to update dispatch status:', error);
+    }
 
     return this.toOrderResponse(order);
   }
@@ -360,9 +385,6 @@ export class OrdersService {
 
     await order.save();
 
-    // TODO: Update driver wallet
-    // await PaymentsService.creditDriverWallet(driverId, order.codAmount);
-
     return this.toOrderResponse(order);
   }
 
@@ -377,7 +399,6 @@ export class OrdersService {
       throw new AppError(404, 'Order not found.');
     }
 
-    // Can only cancel if not delivered or picked up
     const cancellableStatuses = [
       OrderStatus.WAITING_FOR_DRIVER,
       OrderStatus.DRIVER_ASSIGNED,
@@ -397,6 +418,20 @@ export class OrdersService {
     });
 
     await order.save();
+
+    // 🧹 CLEAN UP DISPATCH - Using proper DispatchStatus enums now
+    try {
+      await DispatchRequestModel.updateMany(
+        {
+          orderId: order._id,
+          status: { $in: [DispatchStatus.PENDING, DispatchStatus.SEARCHING] },
+        },
+        { status: DispatchStatus.CANCELLED },
+      );
+      console.log(`✅ Dispatch requests cancelled for order ${order.orderId}`);
+    } catch (error) {
+      console.error('Failed to cancel dispatch requests:', error);
+    }
 
     return this.toOrderResponse(order);
   }
@@ -459,10 +494,7 @@ export class OrdersService {
         {
           $project: {
             deliveryTime: {
-              $divide: [
-                { $subtract: ['$actualDeliveryTime', '$assignedAt'] },
-                60000, // Convert to minutes
-              ],
+              $divide: [{ $subtract: ['$actualDeliveryTime', '$assignedAt'] }, 60000],
             },
           },
         },
@@ -481,7 +513,6 @@ export class OrdersService {
     const totalRevenue = revenueData[0]?.total || 0;
     const pendingCOD = codData[0]?.total || 0;
 
-    // Calculate completion rate
     const completed = statusMap[OrderStatus.DELIVERED] + statusMap[OrderStatus.COD_COLLECTED];
     const cancelled = statusMap[OrderStatus.CANCELLED];
     const totalNonCancelled = totalOrders - cancelled;
@@ -529,12 +560,12 @@ export class OrdersService {
       id: order.id || order._id.toString(),
       orderId: order.orderId,
       source: order.source,
-      vendorId: order.vendorId?.toString() || order.vendorId, // Added
+      vendorId: order.vendorId?.toString() || order.vendorId,
       vendorName: order.vendorName,
-      customerId: order.customerId?.toString() || order.customerId, // Added
+      customerId: order.customerId?.toString() || order.customerId,
       customerName: order.customerName,
       customerPhone: order.customerPhone,
-      driverId: order.driverId?.toString() || order.driverId, // Added
+      driverId: order.driverId?.toString() || order.driverId,
       driverName: order.driverName,
       pickupAddress: order.pickupAddress,
       deliveryAddress: order.deliveryAddress,

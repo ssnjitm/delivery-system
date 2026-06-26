@@ -3,11 +3,7 @@ import { AppError } from '@/middlewares/auth.js';
 import { OrderStatus, UserRole } from '@/types/enums.js';
 import { DriverModel } from '../users/model.js';
 import { OrderModel } from '../orders/model.js';
-import {
-  DispatchRequestModel,
-  BatchGroupModel,
-  DispatchQueueModel,
-} from './model.js';
+import { DispatchRequestModel, BatchGroupModel, DispatchQueueModel } from './model.js';
 import {
   IDispatchRequest,
   IDriverMatch,
@@ -22,6 +18,7 @@ import {
   DEFAULT_DISPATCH_CONFIG,
   IDispatchConfig,
 } from './types.js';
+import { DispatchIntegration } from '../orders/integration/dispatch-integration.js';
 
 export class DispatchService {
   private static config: IDispatchConfig = DEFAULT_DISPATCH_CONFIG;
@@ -68,6 +65,8 @@ export class DispatchService {
     if (nearbyDrivers.length === 0) {
       // Queue for retry
       await this.queueForRetry(orderId, 'No drivers found nearby');
+      // Notify dispatch failed
+      await DispatchIntegration.handleDispatchFailed(orderId, 'No drivers found nearby');
       throw new AppError(404, 'No drivers available nearby. Order queued for retry.');
     }
 
@@ -85,7 +84,7 @@ export class DispatchService {
 
   static async findNearbyDrivers(
     coordinates: [number, number],
-    radius: number
+    radius: number,
   ): Promise<IDriverMatch[]> {
     const drivers = await DriverModel.aggregate([
       {
@@ -139,10 +138,7 @@ export class DispatchService {
     }));
   }
 
-  static async calculateMatchScores(
-    drivers: IDriverMatch[],
-    order: any
-  ): Promise<IDriverMatch[]> {
+  static async calculateMatchScores(drivers: IDriverMatch[], order: any): Promise<IDriverMatch[]> {
     const weights = this.config.scoringWeights;
 
     // Find max values for normalization
@@ -152,7 +148,7 @@ export class DispatchService {
 
     return drivers.map((driver) => {
       // Normalize scores (0-1)
-      const distanceScore = 1 - (driver.distance / maxDistance);
+      const distanceScore = 1 - driver.distance / maxDistance;
       const ratingScore = driver.rating / maxRating;
       const historyScore = Math.min(driver.totalDeliveries / maxDeliveries, 1);
       const availabilityScore = driver.currentLocation.lastUpdate
@@ -173,10 +169,9 @@ export class DispatchService {
     });
   }
 
-  // Changed return type from Promise<IDispatchRequest> to Mongoose's HydratedDocument wrapper
   static async createDispatchRequest(
     order: any,
-    matchedDrivers: IDriverMatch[]
+    matchedDrivers: IDriverMatch[],
   ): Promise<HydratedDocument<IDispatchRequest>> {
     const dispatchRequest = new DispatchRequestModel({
       orderId: order._id,
@@ -206,9 +201,7 @@ export class DispatchService {
     return dispatchRequest;
   }
 
-  // ============================================
   // Driver Response Handling
-  // ============================================
 
   static async acceptOrder(payload: IAcceptOrderPayload): Promise<IDispatchResponse> {
     const { dispatchRequestId, driverId } = payload;
@@ -225,6 +218,7 @@ export class DispatchService {
     if (dispatchRequest.expiresAt < new Date()) {
       dispatchRequest.status = DispatchStatus.EXPIRED;
       await dispatchRequest.save();
+      await DispatchIntegration.handleDispatchExpired(dispatchRequest.orderId.toString());
       throw new AppError(400, 'This dispatch request has expired.');
     }
 
@@ -246,10 +240,11 @@ export class DispatchService {
     dispatchRequest.acceptedAt = new Date();
     await dispatchRequest.save();
 
-    // Update order
-    const order = await OrderModel.findById(dispatchRequest.orderId);
-    if (order) {
-      await OrdersService.assignDriver(order._id.toString(), driverId);
+    // 🔔 NOTIFY ORDERS MODULE - Update order with driver
+    try {
+      await DispatchIntegration.handleDriverAccepted(dispatchRequest.orderId.toString(), driverId);
+    } catch (error) {
+      console.error('Failed to update order after driver accept:', error);
     }
 
     // Clean up other dispatch requests for this order
@@ -259,7 +254,7 @@ export class DispatchService {
         _id: { $ne: dispatchRequest._id },
         status: DispatchStatus.SEARCHING,
       },
-      { status: DispatchStatus.CANCELLED }
+      { status: DispatchStatus.CANCELLED },
     );
 
     // Remove from queue
@@ -287,11 +282,17 @@ export class DispatchService {
 
     await dispatchRequest.save();
 
+    // Notify orders module about rejection
+    await DispatchIntegration.handleDriverRejected(
+      dispatchRequest.orderId.toString(),
+      driverId,
+      reason,
+    );
+
     // Check if we need to notify more drivers
     await this.findMoreDrivers(dispatchRequest);
   }
 
-  // Changed argument type from pure IDispatchRequest to HydratedDocument<IDispatchRequest>
   static async findMoreDrivers(dispatchRequest: HydratedDocument<IDispatchRequest>): Promise<void> {
     const rejectedCount = dispatchRequest.rejectedDrivers.length;
     const notifiedCount = dispatchRequest.notifiedDrivers.length;
@@ -303,20 +304,18 @@ export class DispatchService {
       if (dispatchRequest.attemptCount >= dispatchRequest.maxAttempts) {
         dispatchRequest.status = DispatchStatus.EXPIRED;
         await dispatchRequest.save();
+        await DispatchIntegration.handleDispatchExpired(dispatchRequest.orderId.toString());
 
         // Queue for retry
         await this.queueForRetry(
           dispatchRequest.orderId.toString(),
-          'All drivers rejected the order'
+          'All drivers rejected the order',
         );
         return;
       }
 
       // Increase search radius
-      const newRadius = Math.min(
-        dispatchRequest.searchRadius * 1.5,
-        this.config.maxSearchRadius
-      );
+      const newRadius = Math.min(dispatchRequest.searchRadius * 1.5, this.config.maxSearchRadius);
       dispatchRequest.searchRadius = newRadius;
 
       // Find more drivers
@@ -325,31 +324,21 @@ export class DispatchService {
       const moreDrivers = await this.findNearbyDrivers(pickupCoords, newRadius);
 
       // Filter out already notified drivers
-      const notifiedIds = new Set(
-        dispatchRequest.notifiedDrivers.map((id) => id.toString())
-      );
-      const newDrivers = moreDrivers.filter(
-        (d) => !notifiedIds.has(d.driverId.toString())
-      );
+      const notifiedIds = new Set(dispatchRequest.notifiedDrivers.map((id) => id.toString()));
+      const newDrivers = moreDrivers.filter((d) => !notifiedIds.has(d.driverId.toString()));
 
       if (newDrivers.length === 0) {
         dispatchRequest.status = DispatchStatus.EXPIRED;
         await dispatchRequest.save();
-        await this.queueForRetry(
-          dispatchRequest.orderId.toString(),
-          'No additional drivers found'
-        );
+        await DispatchIntegration.handleDispatchExpired(dispatchRequest.orderId.toString());
+        await this.queueForRetry(dispatchRequest.orderId.toString(), 'No additional drivers found');
         return;
       }
 
       // Calculate scores and notify
       const scoredDrivers = await this.calculateMatchScores(newDrivers, order);
-      dispatchRequest.notifiedDrivers.push(
-        ...scoredDrivers.map((d) => d.driverId)
-      );
-      dispatchRequest.expiresAt = new Date(
-        Date.now() + this.config.driverResponseTimeout * 1000
-      );
+      dispatchRequest.notifiedDrivers.push(...scoredDrivers.map((d) => d.driverId));
+      dispatchRequest.expiresAt = new Date(Date.now() + this.config.driverResponseTimeout * 1000);
       await dispatchRequest.save();
 
       await this.notifyDrivers(dispatchRequest, scoredDrivers);
@@ -359,7 +348,12 @@ export class DispatchService {
   // Batch Optimization
 
   static async suggestBatch(payload: IBatchSuggestionPayload): Promise<IBatchGroup | null> {
-    const { driverId, currentOrderId, maxOrders = this.config.batchMaxOrders, maxDetourDistance = this.config.batchMaxDetourDistance } = payload;
+    const {
+      driverId,
+      currentOrderId,
+      maxOrders = this.config.batchMaxOrders,
+      maxDetourDistance = this.config.batchMaxDetourDistance,
+    } = payload;
 
     // Get current order
     const currentOrder = await OrderModel.findById(currentOrderId);
@@ -403,7 +397,7 @@ export class DispatchService {
     for (const order of allOrders) {
       await DispatchQueueModel.findOneAndUpdate(
         { orderId: order._id },
-        { batchGroupId: batchGroup._id, batchable: true }
+        { batchGroupId: batchGroup._id, batchable: true },
       );
     }
 
@@ -449,7 +443,7 @@ export class DispatchService {
         if (!visited.has(`${orderId}-pickup`)) {
           const dist = this.calculateDistance(
             currentLocation,
-            order.pickupAddress.coordinates.coordinates
+            order.pickupAddress.coordinates.coordinates,
           );
           if (dist < nearestDist) {
             nearest = { order, type: 'PICKUP', id: `${orderId}-pickup` };
@@ -461,7 +455,7 @@ export class DispatchService {
         if (!visited.has(`${orderId}-delivery`)) {
           const dist = this.calculateDistance(
             currentLocation,
-            order.deliveryAddress.coordinates.coordinates
+            order.deliveryAddress.coordinates.coordinates,
           );
           if (dist < nearestDist) {
             nearest = { order, type: 'DELIVERY', id: `${orderId}-delivery` };
@@ -473,18 +467,20 @@ export class DispatchService {
       if (!nearest) break;
 
       const { order, type, id } = nearest;
-      const location = type === 'PICKUP'
-        ? order.pickupAddress.coordinates.coordinates
-        : order.deliveryAddress.coordinates.coordinates;
+      const location =
+        type === 'PICKUP'
+          ? order.pickupAddress.coordinates.coordinates
+          : order.deliveryAddress.coordinates.coordinates;
 
       waypoints.push({
         orderId: order._id,
         type,
         location: {
           coordinates: location,
-          address: type === 'PICKUP'
-            ? `${order.pickupAddress.street}, ${order.pickupAddress.area}`
-            : `${order.deliveryAddress.street}, ${order.deliveryAddress.area}`,
+          address:
+            type === 'PICKUP'
+              ? `${order.pickupAddress.street}, ${order.pickupAddress.area}`
+              : `${order.deliveryAddress.street}, ${order.deliveryAddress.area}`,
         },
         sequence,
       });
@@ -504,27 +500,22 @@ export class DispatchService {
     };
   }
 
-  static calculateDistance(
-    coord1: [number, number],
-    coord2: [number, number]
-  ): number {
+  static calculateDistance(coord1: [number, number], coord2: [number, number]): number {
     const R = 6371000; // Earth's radius in meters
-    const lat1 = coord1[1] * Math.PI / 180;
-    const lat2 = coord2[1] * Math.PI / 180;
-    const dLat = (coord2[1] - coord1[1]) * Math.PI / 180;
-    const dLon = (coord2[0] - coord1[0]) * Math.PI / 180;
+    const lat1 = (coord1[1] * Math.PI) / 180;
+    const lat2 = (coord2[1] * Math.PI) / 180;
+    const dLat = ((coord2[1] - coord1[1]) * Math.PI) / 180;
+    const dLon = ((coord2[0] - coord1[0]) * Math.PI) / 180;
 
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1) * Math.cos(lat2) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
   }
 
-  // ============================================
   // Queue Management
-  // ============================================
 
   static async queueForRetry(orderId: string, errorMessage: string): Promise<void> {
     await DispatchQueueModel.findOneAndUpdate(
@@ -535,7 +526,7 @@ export class DispatchService {
         errorMessage,
         nextRetryAt: new Date(Date.now() + this.getRetryDelay(1)),
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -560,7 +551,7 @@ export class DispatchService {
           orderId: item.orderId.toString(),
           searchRadius: Math.min(
             this.config.defaultSearchRadius * (1 + item.retryCount * 0.5),
-            this.config.maxSearchRadius
+            this.config.maxSearchRadius,
           ),
         });
 
@@ -571,6 +562,10 @@ export class DispatchService {
         if (item.retryCount >= item.maxRetries) {
           item.status = 'FAILED';
           item.errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          await DispatchIntegration.handleDispatchFailed(
+            item.orderId.toString(),
+            item.errorMessage,
+          );
         } else {
           item.nextRetryAt = new Date(Date.now() + this.getRetryDelay(item.retryCount));
         }
@@ -580,14 +575,12 @@ export class DispatchService {
   }
 
   // Driver Notifications (Placeholder)
-
-  static async notifyDrivers(
-    dispatchRequest: IDispatchRequest,
-    drivers: IDriverMatch[]
-  ): Promise<void> {
+  static async notifyDrivers(dispatchRequest: any, drivers: IDriverMatch[]): Promise<void> {
     // TODO: Implement notifications
     // This will be implemented when Notifications module is ready
-    console.log(`📢 Notifying ${drivers.length} drivers for order ${dispatchRequest.orderIdDisplay}`);
+    console.log(
+      `📢 Notifying ${drivers.length} drivers for order ${dispatchRequest.orderIdDisplay}`,
+    );
 
     for (const driver of drivers) {
       console.log(`  → Driver: ${driver.driverName} (${driver.driverId})`);
@@ -597,22 +590,20 @@ export class DispatchService {
   }
 
   // Helper Methods
-
   private static toDispatchResponse(request: any): IDispatchResponse {
     return {
       id: request._id.toString(),
       orderId: request.orderIdDisplay,
       status: request.status,
-      assignedDriver: request.assignedDriverId ? {
-        id: request.assignedDriverId.toString(),
-        name: '', // Would need to fetch driver name
-      } : undefined,
+      assignedDriver: request.assignedDriverId
+        ? {
+            id: request.assignedDriverId.toString(),
+            name: '', // Would need to fetch driver name
+          }
+        : undefined,
       estimatedEarnings: request.estimatedEarnings,
       expiresAt: request.expiresAt,
       createdAt: request.createdAt,
     };
   }
 }
-
-// Import for OrdersService integration (circular dependency handled)
-import { OrdersService } from '../orders/service.js';
