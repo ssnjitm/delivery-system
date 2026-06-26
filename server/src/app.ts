@@ -14,6 +14,7 @@ import adminRoutes from './modules/admin/routes.js';
 import orderRoutes from './modules/orders/routes.js';
 import dispatchRoutes from './modules/dispatch/routes.js';
 import trackingRoutes from './modules/tracking/routes.js';
+import pricingRoutes from './modules/pricing/routes.js';
 
 
 
@@ -77,6 +78,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/dispatch', dispatchRoutes);
 app.use('/api/v1/tracking', trackingRoutes);
+app.use('/api/v1/pricing', pricingRoutes);
 
 
 

@@ -19,7 +19,7 @@ export class OrdersController {
     const payload: ICreateOrderPayload = {
       ...req.body,
       source: req.user.role === UserRole.VENDOR ? 'VENDOR' : 'NORMAL_USER',
-      vendorId: req.body.vendorId || req.user.userId, // If vendor creating, use their ID
+      vendorId: req.body.vendorId || req.user.userId,
     };
 
     const order = await OrdersService.createOrder(payload);
@@ -32,7 +32,6 @@ export class OrdersController {
   }
 
   // Order Retrieval
-
   static async getOrder(req: Request<{ id: string }>, res: Response): Promise<void> {
     if (!req.user) {
       throw new AppError(401, 'Authentication required.');
@@ -41,7 +40,7 @@ export class OrdersController {
     const { id } = req.params;
     const order = await OrdersService.getOrderById(id);
 
-    // Check access permissions using the string IDs from response
+    // Check access permissions
     const isVendor = req.user.role === UserRole.VENDOR && order.vendorId === req.user.userId;
     const isDriver = req.user.role === UserRole.DRIVER && order.driverId === req.user.userId;
     const isCustomer =
@@ -67,7 +66,7 @@ export class OrdersController {
     const { orderId } = req.params;
     const order = await OrdersService.getOrderByOrderId(orderId);
 
-    // Check access permissions (same as above)
+    // Check access permissions
     const isVendor = req.user.role === UserRole.VENDOR && order.vendorId === req.user.userId;
     const isDriver = req.user.role === UserRole.DRIVER && order.driverId === req.user.userId;
     const isCustomer =
@@ -175,7 +174,6 @@ export class OrdersController {
   }
 
   // Order Status Management
-
   static async updateOrderStatus(req: Request<{ id: string }>, res: Response): Promise<void> {
     if (!req.user) {
       throw new AppError(401, 'Authentication required.');
@@ -270,7 +268,6 @@ export class OrdersController {
   }
 
   // Order Statistics
-
   static async getOrderStats(req: Request, res: Response): Promise<void> {
     if (!req.user) {
       throw new AppError(401, 'Authentication required.');
@@ -281,7 +278,6 @@ export class OrdersController {
     let stats;
 
     if (req.user.role === UserRole.ADMIN) {
-      // Admin can see all stats
       stats = await OrdersService.getOrderStats(
         vendorId as string,
         driverId as string,
@@ -299,6 +295,61 @@ export class OrdersController {
     res.status(200).json({
       success: true,
       data: stats,
+    });
+  }
+
+  // ============================================
+  // PRICING INTEGRATION METHODS
+  // ============================================
+
+  /**
+   * Get price breakdown for an order
+   * GET /orders/:id/price
+   */
+  static async getOrderPrice(req: Request<{ id: string }>, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, 'Authentication required.');
+    }
+
+    const { id } = req.params;
+
+    // Check access permissions
+    const order = await OrdersService.getOrderById(id);
+    const isVendor = req.user.role === UserRole.VENDOR && order.vendorId === req.user.userId;
+    const isDriver = req.user.role === UserRole.DRIVER && order.driverId === req.user.userId;
+    const isCustomer =
+      (req.user.role === UserRole.CUSTOMER || req.user.role === UserRole.NORMAL_USER) &&
+      order.customerId === req.user.userId;
+    const isAdmin = req.user.role === UserRole.ADMIN;
+
+    if (!isVendor && !isDriver && !isCustomer && !isAdmin) {
+      throw new AppError(403, 'You do not have access to this order.');
+    }
+
+    const priceData = await OrdersService.getOrderPriceBreakdown(id);
+
+    res.status(200).json({
+      success: true,
+      data: priceData,
+    });
+  }
+
+  /**
+   * Recalculate order price (Admin only)
+   * POST /orders/:id/recalculate-price
+   */
+  static async recalculateOrderPrice(req: Request<{ id: string }>, res: Response): Promise<void> {
+    if (!req.user || req.user.role !== UserRole.ADMIN) {
+      throw new AppError(403, 'Admin access required.');
+    }
+
+    const { id } = req.params;
+    const order = await OrdersService.updateOrderPrice(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Order price recalculated successfully.',
+      data: order,
     });
   }
 }

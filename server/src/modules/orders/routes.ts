@@ -135,6 +135,20 @@ orderRoutes.get(
   }
 );
 
+// 🆕 Price Endpoints
+orderRoutes.get(
+  '/:id/price',
+  authenticateToken,
+  OrdersController.getOrderPrice
+);
+
+orderRoutes.post(
+  '/:id/recalculate-price',
+  authenticateToken,
+  requireRole(UserRole.ADMIN),
+  OrdersController.recalculateOrderPrice
+);
+
 // Order Status Management
 orderRoutes.patch(
   '/:id/status',
@@ -234,6 +248,36 @@ registry.registerPath({
     200: { description: 'Dispatch status retrieved' },
     401: { description: 'Unauthorized' },
     403: { description: 'Forbidden' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/orders/{id}/price',
+  tags: ['Orders', 'Pricing'],
+  summary: 'Get order price breakdown',
+  description: 'Get detailed price breakdown for an order',
+  security: [{ BearerAuth: [] }],
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+  responses: {
+    200: { description: 'Price breakdown retrieved' },
+    401: { description: 'Unauthorized' },
+    403: { description: 'Forbidden' },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/orders/{id}/recalculate-price',
+  tags: ['Orders', 'Pricing'],
+  summary: 'Recalculate order price (Admin only)',
+  description: 'Recalculate the price for an existing order using current pricing rules',
+  security: [{ BearerAuth: [] }],
+  parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+  responses: {
+    200: { description: 'Price recalculated successfully' },
+    401: { description: 'Unauthorized' },
+    403: { description: 'Forbidden - Admin only' },
   },
 });
 

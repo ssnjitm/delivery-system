@@ -15,6 +15,9 @@ import { DispatchService } from '../dispatch/service.js';
 import { DispatchRequestModel } from '../dispatch/model.js';
 import { DispatchStatus } from '../dispatch/types.js';
 import { TrackingService } from '../tracking/service.js';
+import { PricingService } from '../pricing/service.js';
+import { IPriceRequest, IPriceResponse } from '../pricing/types.js';
+
 export class OrdersService {
   // Order Creation
   static async createOrder(payload: ICreateOrderPayload): Promise<IOrderResponse> {
@@ -56,38 +59,37 @@ export class OrdersService {
       }
     }
 
-    // Calculate delivery fee (will be integrated with Pricing module later)
-    // For now, using a simple calculation
-    const distanceKm = 5; // TODO: Calculate from maps API
-    const basePrice = 50;
-    const perKmRate = 15;
-    const deliveryFee = basePrice + distanceKm * perKmRate;
-
-    // Calculate extra charges based on package type
-    const packageTypeCharges: Record<PackageType, number> = {
-      [PackageType.STANDARD]: 0,
-      [PackageType.DOCUMENT]: 0,
-      [PackageType.PERISHABLE]: 50,
-      [PackageType.FRAGILE]: 30,
-      [PackageType.PHARMACY]: 20,
+    // Calculate price using PricingService
+    const priceRequest: IPriceRequest = {
+      pickupLocation: {
+        coordinates: pickupAddress.coordinates,
+        area: pickupAddress.area,
+        city: pickupAddress.city,
+      },
+      deliveryLocation: {
+        coordinates: deliveryAddress.coordinates,
+        area: deliveryAddress.area,
+        city: deliveryAddress.city,
+      },
+      packageType,
+      packageWeight,
+      isPeakHour: this.isPeakHour(),
+      customerType: source === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
+      specialHandling: this.hasSpecialHandling(items),
     };
 
-    const extraCharges = {
-      peakHour: 0, // TODO: Implement peak hour logic
-      packageType: packageTypeCharges[packageType] || 0,
-      areaSurcharge: 0, // TODO: Implement area surcharge
-      specialHandling: 0,
-    };
+    // Calculate price using PricingService
+    const priceResult = await PricingService.calculatePrice(priceRequest);
 
-    // Calculate total
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const totalAmount =
-      subtotal +
-      deliveryFee +
-      extraCharges.peakHour +
-      extraCharges.packageType +
-      extraCharges.areaSurcharge +
-      extraCharges.specialHandling;
+    const {
+      basePrice,
+      distance,
+      packageSurcharge,
+      peakHourSurcharge,
+      areaSurcharge,
+      specialHandling,
+      total: totalAmount,
+    } = priceResult.breakdown;
 
     // Create order
     const orderData: Partial<IOrder> = {
@@ -119,10 +121,15 @@ export class OrdersService {
         total: item.price * item.quantity,
       })),
       basePrice,
-      distanceKm,
-      perKmRate,
-      deliveryFee,
-      extraCharges,
+      distanceKm: distance.km,
+      perKmRate: distance.perKmRate,
+      deliveryFee: distance.amount,
+      extraCharges: {
+        peakHour: peakHourSurcharge.amount,
+        packageType: packageSurcharge.amount,
+        areaSurcharge: areaSurcharge.total,
+        specialHandling: specialHandling,
+      },
       totalAmount,
       isCOD,
       codAmount: isCOD ? codAmount || totalAmount : 0,
@@ -132,29 +139,35 @@ export class OrdersService {
       metadata: {
         createdBy: source === 'VENDOR' ? 'vendor' : 'normal_user',
         packageType,
+        priceBreakdown: priceResult.breakdown,
+        priceValidUntil: priceResult.validUntil,
       },
     };
 
     const order = new OrderModel(orderData);
     await order.save();
 
-    // 🚀 TRIGGER DISPATCH ENGINE - Find driver automatically
+    // Store price history
+    try {
+      await PricingService.savePriceHistory(order._id.toString(), priceResult);
+    } catch (error) {
+      console.error('Failed to save price history:', error);
+    }
+
+    // Trigger Dispatch Engine
     try {
       await DispatchService.findDriverForOrder({
         orderId: order._id.toString(),
       });
       console.log(`✅ Dispatch triggered for order ${order.orderId}`);
     } catch (dispatchError) {
-      // Log error but don't fail order creation
       console.error(`❌ Dispatch error for order ${order.orderId}:`, dispatchError);
-      // Order is created but no driver found yet - will be retried via queue
     }
 
     return this.toOrderResponse(order);
   }
 
   // Order Retrieval
-
   static async getOrderById(orderId: string): Promise<IOrderResponse> {
     const order = await OrderModel.findById(orderId);
     if (!order) {
@@ -334,7 +347,7 @@ export class OrdersService {
       console.error('Failed to create tracking session:', error);
     }
 
-    // 🧹 CLEAN UP DISPATCH - Using proper DispatchStatus enums now
+    // Clean up dispatch requests
     try {
       await DispatchRequestModel.updateMany(
         {
@@ -419,7 +432,7 @@ export class OrdersService {
 
     await order.save();
 
-    // 🧹 CLEAN UP DISPATCH - Using proper DispatchStatus enums now
+    // Clean up dispatch requests
     try {
       await DispatchRequestModel.updateMany(
         {
@@ -529,6 +542,190 @@ export class OrdersService {
       pendingCOD,
       averageDeliveryTime: Math.round(deliveryTimes[0]?.avg || 0),
       completionRate: Math.round(completionRate * 100) / 100,
+    };
+  }
+
+  // ============================================
+  // PRICING INTEGRATION METHODS
+  // ============================================
+
+  /**
+   * Check if current time is peak hour
+   */
+  private static isPeakHour(): boolean {
+    const now = new Date();
+    const hour = now.getHours();
+    const day = now.getDay();
+
+    // Weekends
+    if (day === 0 || day === 6) {
+      return true;
+    }
+
+    // Morning peak: 7-10 AM
+    if (hour >= 7 && hour <= 10) {
+      return true;
+    }
+
+    // Evening peak: 5-8 PM
+    if (hour >= 17 && hour <= 20) {
+      return true;
+    }
+
+    // Night: 10 PM - 6 AM
+    if (hour >= 22 || hour <= 6) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if order requires special handling
+   */
+  private static hasSpecialHandling(items: any[]): boolean {
+    return items.some(item => 
+      item.notes?.toLowerCase().includes('fragile') ||
+      item.notes?.toLowerCase().includes('handle with care') ||
+      item.notes?.toLowerCase().includes('special')
+    );
+  }
+
+  /**
+   * Recalculate price for existing order
+   */
+  static async recalculatePrice(orderId: string): Promise<IPriceResponse> {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      throw new AppError(404, 'Order not found.');
+    }
+
+    const priceRequest: IPriceRequest = {
+      pickupLocation: {
+        coordinates: order.pickupAddress.coordinates.coordinates as [number, number],
+        area: order.pickupAddress.area,
+        city: order.pickupAddress.city,
+      },
+      deliveryLocation: {
+        coordinates: order.deliveryAddress.coordinates.coordinates as [number, number],
+        area: order.deliveryAddress.area,
+        city: order.deliveryAddress.city,
+      },
+      packageType: order.packageType,
+      packageWeight: order.packageWeight,
+      isPeakHour: this.isPeakHour(),
+      customerType: order.source === 'VENDOR' ? 'VENDOR' : 'CUSTOMER',
+      specialHandling: this.hasSpecialHandling(order.items),
+    };
+
+    return await PricingService.calculatePrice(priceRequest);
+  }
+
+  /**
+   * Update order with recalculated price
+   */
+  static async updateOrderPrice(orderId: string): Promise<IOrderResponse> {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      throw new AppError(404, 'Order not found.');
+    }
+
+    // Only allow price recalculation for orders that haven't been picked up
+    const allowedStatuses = [
+      OrderStatus.WAITING_FOR_DRIVER,
+      OrderStatus.DRIVER_ASSIGNED,
+    ];
+
+    if (!allowedStatuses.includes(order.status)) {
+      throw new AppError(400, `Cannot recalculate price for order with status: ${order.status}`);
+    }
+
+    // Recalculate price
+    const priceResult = await this.recalculatePrice(orderId);
+
+    const { distance, packageSurcharge, peakHourSurcharge, areaSurcharge, specialHandling } = 
+      priceResult.breakdown;
+
+    // Update order with new pricing
+    order.basePrice = priceResult.breakdown.basePrice;
+    order.distanceKm = distance.km;
+    order.perKmRate = distance.perKmRate;
+    order.deliveryFee = distance.amount;
+    order.extraCharges = {
+      peakHour: peakHourSurcharge.amount,
+      packageType: packageSurcharge.amount,
+      areaSurcharge: areaSurcharge.total,
+      specialHandling: specialHandling,
+    };
+    order.totalAmount = priceResult.total;
+    
+    if (order.isCOD) {
+      order.codAmount = priceResult.total;
+    }
+
+    order.metadata = {
+      ...order.metadata,
+      priceBreakdown: priceResult.breakdown,
+      priceValidUntil: priceResult.validUntil,
+      priceRecalculatedAt: new Date(),
+    };
+
+    await order.save();
+
+    // Save updated price history
+    try {
+      await PricingService.savePriceHistory(order._id.toString(), priceResult);
+    } catch (error) {
+      console.error('Failed to save price history:', error);
+    }
+
+    return this.toOrderResponse(order);
+  }
+
+  /**
+   * Get price breakdown for an order
+   */
+  static async getOrderPriceBreakdown(orderId: string): Promise<{
+    breakdown: any;
+    total: number;
+    calculatedAt: Date;
+    validUntil: Date | null;
+  }> {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      throw new AppError(404, 'Order not found.');
+    }
+
+    // Type guard to check if metadata has priceBreakdown
+    const hasPriceBreakdown = (
+      metadata: any
+    ): metadata is { priceBreakdown: any; priceValidUntil?: Date } => {
+      return (
+        metadata &&
+        typeof metadata === 'object' &&
+        'priceBreakdown' in metadata &&
+        metadata.priceBreakdown !== null &&
+        metadata.priceBreakdown !== undefined
+      );
+    };
+
+    // Check if price breakdown exists in metadata
+    if (hasPriceBreakdown(order.metadata)) {
+      return {
+        breakdown: order.metadata.priceBreakdown,
+        total: order.totalAmount,
+        calculatedAt: order.metadata.priceBreakdown?.calculatedAt || order.createdAt,
+        validUntil: order.metadata.priceValidUntil || null,
+      };
+    }
+
+    // If no breakdown stored, calculate it
+    const priceResult = await this.recalculatePrice(orderId);
+    return {
+      breakdown: priceResult.breakdown,
+      total: priceResult.total,
+      calculatedAt: priceResult.calculatedAt,
+      validUntil: priceResult.validUntil,
     };
   }
 
