@@ -5,6 +5,7 @@ import 'express-async-errors';
 import swaggerUi from 'swagger-ui-express';
 import { buildOpenApiDocument } from './utils/swagger.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
+import { notFound } from './middlewares/notFound.middleware.js';
 import path from 'path';
 
 import authRoutes from './modules/auth/routes.js';
@@ -86,6 +87,9 @@ app.use('/api/v1/pricing', pricingRoutes);
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
+
+// 404 Handler — must be registered after all routes
+app.use(notFound);
 
 // Centralised Error Handler
 app.use(errorHandler);

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { ApiError } from "../utils/ApiError.js";
+import { AppError } from "./auth.js";
 import { fail } from "../utils/ApiResponse.js"; 
 
 export function errorHandler(
@@ -9,6 +10,10 @@ export function errorHandler(
     _next: NextFunction
 ) {
     if (err instanceof ApiError) {
+        return res.status(err.statusCode).json(fail(err.message));
+    }
+
+    if (err instanceof AppError) {
         return res.status(err.statusCode).json(fail(err.message));
     }
     

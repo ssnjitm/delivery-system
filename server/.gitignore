@@ -143,3 +143,4 @@ vite.config.ts.timestamp-*
 .vite/
 AGENT.MD
 readme_dispactch.md
+documentation.md

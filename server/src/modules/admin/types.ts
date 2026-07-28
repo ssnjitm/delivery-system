@@ -16,9 +16,9 @@ export enum AdminActionType {
   DRIVER_SUSPENDED = 'driver_suspended',
   DRIVER_ACTIVATED = 'driver_activated',
 
-  // Document ActionsA
+  // Document Actions
   DOCUMENT_VERIFIED = 'document_verified',
-  DOCUMENT_REJECTED = 'document_reAected',
+  DOCUMENT_REJECTED = 'document_rejected',
 
   // Order Actions (for future)
   ORDER_CANCELLED = 'order_cancelled',
