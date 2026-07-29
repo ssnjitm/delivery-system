@@ -75,7 +75,7 @@ export class AuthController {
   public static async login(req: Request, res: Response): Promise<void> {
     const { phone, password } = req.body;
 
-    const user = await UserModel.findOne({ phone });
+    const user = await UserModel.findOne({ phone }).select('+password');
     if (!user) {
       throw new AppError(401, 'Invalid phone number or security password provided.');
     }

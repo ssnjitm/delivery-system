@@ -43,7 +43,7 @@ export function RegisterVendorForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
     try {
-      const { confirmPassword, longitude, latitude, ...rest } = data
+      const { confirmPassword: _cp, longitude, latitude, ...rest } = data; void _cp
       await registerMutation.mutateAsync({
         ...rest,
         role: 'VENDOR' as const,

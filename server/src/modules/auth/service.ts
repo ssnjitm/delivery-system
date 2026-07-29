@@ -71,7 +71,7 @@ export class AuthService {
    * Validate refresh token matches stored token
    */
   public static async validateRefreshToken(userId: string, refreshToken: string): Promise<boolean> {
-    const user = await UserModel.findById(userId);
+    const user = await UserModel.findById(userId).select('+refreshToken');
     if (!user || !user.refreshToken) return false;
     return user.refreshToken === refreshToken;
   }

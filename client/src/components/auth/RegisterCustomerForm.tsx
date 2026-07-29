@@ -39,7 +39,7 @@ export function RegisterCustomerForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
     try {
-      const { confirmPassword, selfieUrl, email, ...rest } = data
+      const { confirmPassword: _cp, selfieUrl, email, ...rest } = data; void _cp
       await registerMutation.mutateAsync({
         ...rest,
         role: 'CUSTOMER' as const,

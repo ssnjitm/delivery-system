@@ -45,7 +45,7 @@ export function RegisterDriverForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
     try {
-      const { confirmPassword, emergencyName, emergencyPhone, ...rest } = data
+      const { confirmPassword: _cp, emergencyName, emergencyPhone, ...rest } = data; void _cp
       await registerMutation.mutateAsync({
         ...rest,
         role: 'DRIVER' as const,

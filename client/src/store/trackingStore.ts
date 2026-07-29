@@ -19,7 +19,7 @@ export const useTrackingStore = create<TrackingState>((set) => ({
     })),
   removeSession: (driverId) =>
     set((state) => {
-      const { [driverId]: _, ...rest } = state.activeSessions
+      const { [driverId]: removed, ...rest } = state.activeSessions; void removed
       return { activeSessions: rest }
     }),
   clearAll: () => set({ activeSessions: {} }),

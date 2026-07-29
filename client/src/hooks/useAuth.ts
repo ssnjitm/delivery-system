@@ -28,6 +28,7 @@ export function useAuth() {
     try {
       await api.post('/auth/logout')
     } catch {
+      // silent
     } finally {
       disconnectSocket()
       storeLogout()
