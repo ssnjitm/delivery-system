@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useAuth } from '@/hooks/useAuth'
+import { useRegisterMutation } from '@/hooks/queries/useAuthQueries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,11 +10,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().min(10, 'Phone must be at least 10 digits'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Enter valid international phone (e.g. +9779800000000)'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
+  selfieUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -23,9 +24,8 @@ const registerSchema = z.object({
 type RegisterFormData = z.infer<typeof registerSchema>
 
 export function RegisterCustomerForm() {
-  const { login } = useAuth()
+  const registerMutation = useRegisterMutation('customer')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const {
@@ -38,16 +38,18 @@ export function RegisterCustomerForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
-    setLoading(true)
     try {
-      const { confirmPassword, ...payload } = data
-      await login({ phone: payload.phone, password: payload.password })
-      navigate('/dashboard', { replace: true })
+      const { confirmPassword, selfieUrl, email, ...rest } = data
+      await registerMutation.mutateAsync({
+        ...rest,
+        role: 'CUSTOMER' as const,
+        email: email || undefined,
+        selfieUrl: selfieUrl || 'https://placehold.co/400',
+      })
+      navigate('/login', { state: { message: 'Account created! Please sign in.' } })
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } }
       setError(axiosError?.response?.data?.message || 'Registration failed')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -57,19 +59,24 @@ export function RegisterCustomerForm() {
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
       )}
       <FormItem>
-        <Label htmlFor="name">Full Name</Label>
-        <Input id="name" placeholder="John Doe" {...register('name')} />
-        {errors.name && <FormMessage>{errors.name.message}</FormMessage>}
+        <Label htmlFor="fullName">Full Name</Label>
+        <Input id="fullName" placeholder="John Doe" {...register('fullName')} />
+        {errors.fullName && <FormMessage>{errors.fullName.message}</FormMessage>}
       </FormItem>
       <FormItem>
         <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" placeholder="03123456789" {...register('phone')} />
+        <Input id="phone" placeholder="+9779800000000" {...register('phone')} />
         {errors.phone && <FormMessage>{errors.phone.message}</FormMessage>}
       </FormItem>
       <FormItem>
         <Label htmlFor="email">Email (optional)</Label>
         <Input id="email" type="email" placeholder="john@example.com" {...register('email')} />
         {errors.email && <FormMessage>{errors.email.message}</FormMessage>}
+      </FormItem>
+      <FormItem>
+        <Label htmlFor="selfieUrl">Profile Photo URL (optional)</Label>
+        <Input id="selfieUrl" placeholder="https://example.com/photo.jpg" {...register('selfieUrl')} />
+        {errors.selfieUrl && <FormMessage>{errors.selfieUrl.message}</FormMessage>}
       </FormItem>
       <FormItem>
         <Label htmlFor="password">Password</Label>
@@ -81,8 +88,8 @@ export function RegisterCustomerForm() {
         <Input id="confirmPassword" type="password" placeholder="••••••••" {...register('confirmPassword')} />
         {errors.confirmPassword && <FormMessage>{errors.confirmPassword.message}</FormMessage>}
       </FormItem>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Creating Account...' : 'Create Account'}
+      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+        {registerMutation.isPending ? 'Creating Account...' : 'Create Account'}
       </Button>
     </form>
   )

@@ -10,13 +10,15 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const registerSchema = z.object({
-  name: z.string().min(2),
-  phone: z.string().min(10),
-  email: z.string().email().optional().or(z.literal('')),
-  businessName: z.string().min(2, 'Business name is required'),
-  businessAddress: z.string().min(5, 'Business address is required'),
-  password: z.string().min(6),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Enter valid international phone (e.g. +9779800000000)'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
+  businessName: z.string().min(2, 'Business name is required'),
+  ownerName: z.string().min(2, 'Owner name is required'),
+  address: z.string().min(4, 'Address is required'),
+  longitude: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= -180 && Number(v) <= 180, 'Valid longitude required'),
+  latitude: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= -90 && Number(v) <= 90, 'Valid latitude required'),
+  citizenshipDocUrl: z.string().url('Enter a valid document URL'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -41,8 +43,12 @@ export function RegisterVendorForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
     try {
-      const { confirmPassword, businessName, businessAddress, ...payload } = data
-      await registerMutation.mutateAsync({ ...payload, name: data.name })
+      const { confirmPassword, longitude, latitude, ...rest } = data
+      await registerMutation.mutateAsync({
+        ...rest,
+        role: 'VENDOR' as const,
+        coordinates: [Number(longitude), Number(latitude)],
+      })
       setSuccess(true)
       setTimeout(() => navigate('/login'), 3000)
     } catch (err: unknown) {
@@ -54,8 +60,7 @@ export function RegisterVendorForm() {
   if (success) {
     return (
       <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
-        Registration submitted! Your account is under verification. You will be able to log in once approved.
-        Redirecting to login...
+        Registration submitted! Your account is under verification. Redirecting to login...
       </div>
     )
   }
@@ -66,29 +71,41 @@ export function RegisterVendorForm() {
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
       )}
       <FormItem>
-        <Label htmlFor="name">Contact Person Name</Label>
-        <Input id="name" placeholder="John Doe" {...register('name')} />
-        {errors.name && <FormMessage>{errors.name.message}</FormMessage>}
-      </FormItem>
-      <FormItem>
         <Label htmlFor="businessName">Business Name</Label>
-        <Input id="businessName" placeholder="My Store" {...register('businessName')} />
+        <Input id="businessName" placeholder="Spice House" {...register('businessName')} />
         {errors.businessName && <FormMessage>{errors.businessName.message}</FormMessage>}
       </FormItem>
       <FormItem>
-        <Label htmlFor="businessAddress">Business Address</Label>
-        <Input id="businessAddress" placeholder="123 Main St, City" {...register('businessAddress')} />
-        {errors.businessAddress && <FormMessage>{errors.businessAddress.message}</FormMessage>}
+        <Label htmlFor="ownerName">Owner Name</Label>
+        <Input id="ownerName" placeholder="Ram Bahadur" {...register('ownerName')} />
+        {errors.ownerName && <FormMessage>{errors.ownerName.message}</FormMessage>}
       </FormItem>
       <FormItem>
+        <Label htmlFor="address">Business Address</Label>
+        <Input id="address" placeholder="Thamel, Kathmandu" {...register('address')} />
+        {errors.address && <FormMessage>{errors.address.message}</FormMessage>}
+      </FormItem>
+      <div className="grid grid-cols-2 gap-4">
+        <FormItem>
+          <Label htmlFor="longitude">Longitude</Label>
+          <Input id="longitude" placeholder="85.3133" {...register('longitude')} />
+          {errors.longitude && <FormMessage>{errors.longitude.message}</FormMessage>}
+        </FormItem>
+        <FormItem>
+          <Label htmlFor="latitude">Latitude</Label>
+          <Input id="latitude" placeholder="27.7172" {...register('latitude')} />
+          {errors.latitude && <FormMessage>{errors.latitude.message}</FormMessage>}
+        </FormItem>
+      </div>
+      <FormItem>
         <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" placeholder="03123456789" {...register('phone')} />
+        <Input id="phone" placeholder="+9779800000000" {...register('phone')} />
         {errors.phone && <FormMessage>{errors.phone.message}</FormMessage>}
       </FormItem>
       <FormItem>
-        <Label htmlFor="email">Email (optional)</Label>
-        <Input id="email" type="email" placeholder="vendor@example.com" {...register('email')} />
-        {errors.email && <FormMessage>{errors.email.message}</FormMessage>}
+        <Label htmlFor="citizenshipDocUrl">Citizenship Document URL</Label>
+        <Input id="citizenshipDocUrl" placeholder="https://cdn.example.com/docs/citizenship.jpg" {...register('citizenshipDocUrl')} />
+        {errors.citizenshipDocUrl && <FormMessage>{errors.citizenshipDocUrl.message}</FormMessage>}
       </FormItem>
       <FormItem>
         <Label htmlFor="password">Password</Label>

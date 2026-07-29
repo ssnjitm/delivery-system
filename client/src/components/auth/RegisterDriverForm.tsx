@@ -5,20 +5,22 @@ import { useRegisterMutation } from '@/hooks/queries/useAuthQueries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { FormItem, FormMessage } from '@/components/ui/form'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { VEHICLE_TYPES } from '@/lib/constants'
 
 const registerSchema = z.object({
-  name: z.string().min(2),
-  phone: z.string().min(10),
-  email: z.string().email().optional().or(z.literal('')),
-  vehicleType: z.string().min(1, 'Vehicle type is required'),
-  vehicleNumber: z.string().min(2, 'Vehicle number is required'),
-  password: z.string().min(6),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Enter valid international phone (e.g. +9779800000000)'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
+  fullName: z.string().min(2, 'Full name is required'),
+  bikeModel: z.string().min(1, 'Bike model is required'),
+  citizenshipDocUrl: z.string().url('Enter a valid URL'),
+  drivingLicenseUrl: z.string().url('Enter a valid URL'),
+  bluebookUrl: z.string().url('Enter a valid URL'),
+  selfieUrl: z.string().url('Enter a valid URL'),
+  emergencyName: z.string().min(2, 'Emergency contact name is required'),
+  emergencyPhone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Enter valid emergency phone'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -43,8 +45,12 @@ export function RegisterDriverForm() {
   const onSubmit = async (data: RegisterFormData) => {
     setError(null)
     try {
-      const { confirmPassword, ...payload } = data
-      await registerMutation.mutateAsync(payload)
+      const { confirmPassword, emergencyName, emergencyPhone, ...rest } = data
+      await registerMutation.mutateAsync({
+        ...rest,
+        role: 'DRIVER' as const,
+        emergencyContact: { name: emergencyName, phone: emergencyPhone },
+      })
       setSuccess(true)
       setTimeout(() => navigate('/login'), 3000)
     } catch (err: unknown) {
@@ -56,8 +62,7 @@ export function RegisterDriverForm() {
   if (success) {
     return (
       <div className="rounded-md bg-green-50 p-4 text-sm text-green-800">
-        Registration submitted! Your account is under verification. You will be able to log in once approved.
-        Redirecting to login...
+        Registration submitted! Your account is under verification. Redirecting to login...
       </div>
     )
   }
@@ -68,35 +73,52 @@ export function RegisterDriverForm() {
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
       )}
       <FormItem>
-        <Label htmlFor="name">Full Name</Label>
-        <Input id="name" placeholder="John Doe" {...register('name')} />
-        {errors.name && <FormMessage>{errors.name.message}</FormMessage>}
+        <Label htmlFor="fullName">Full Name</Label>
+        <Input id="fullName" placeholder="Sagar Tamang" {...register('fullName')} />
+        {errors.fullName && <FormMessage>{errors.fullName.message}</FormMessage>}
       </FormItem>
       <FormItem>
         <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" placeholder="03123456789" {...register('phone')} />
+        <Input id="phone" placeholder="+9779800000000" {...register('phone')} />
         {errors.phone && <FormMessage>{errors.phone.message}</FormMessage>}
       </FormItem>
       <FormItem>
-        <Label htmlFor="email">Email (optional)</Label>
-        <Input id="email" type="email" placeholder="driver@example.com" {...register('email')} />
-        {errors.email && <FormMessage>{errors.email.message}</FormMessage>}
+        <Label htmlFor="bikeModel">Bike Model</Label>
+        <Input id="bikeModel" placeholder="Honda CB 150R" {...register('bikeModel')} />
+        {errors.bikeModel && <FormMessage>{errors.bikeModel.message}</FormMessage>}
       </FormItem>
       <FormItem>
-        <Label htmlFor="vehicleType">Vehicle Type</Label>
-        <Select
-          id="vehicleType"
-          options={VEHICLE_TYPES.map((v) => ({ value: v, label: v.charAt(0) + v.slice(1).toLowerCase() }))}
-          placeholder="Select vehicle type"
-          {...register('vehicleType')}
-        />
-        {errors.vehicleType && <FormMessage>{errors.vehicleType.message}</FormMessage>}
+        <Label htmlFor="citizenshipDocUrl">Citizenship Document URL</Label>
+        <Input id="citizenshipDocUrl" placeholder="https://cdn.example.com/docs/citizenship.jpg" {...register('citizenshipDocUrl')} />
+        {errors.citizenshipDocUrl && <FormMessage>{errors.citizenshipDocUrl.message}</FormMessage>}
       </FormItem>
       <FormItem>
-        <Label htmlFor="vehicleNumber">Vehicle Number</Label>
-        <Input id="vehicleNumber" placeholder="ABC-1234" {...register('vehicleNumber')} />
-        {errors.vehicleNumber && <FormMessage>{errors.vehicleNumber.message}</FormMessage>}
+        <Label htmlFor="drivingLicenseUrl">Driving License URL</Label>
+        <Input id="drivingLicenseUrl" placeholder="https://cdn.example.com/docs/license.jpg" {...register('drivingLicenseUrl')} />
+        {errors.drivingLicenseUrl && <FormMessage>{errors.drivingLicenseUrl.message}</FormMessage>}
       </FormItem>
+      <FormItem>
+        <Label htmlFor="bluebookUrl">Bluebook URL</Label>
+        <Input id="bluebookUrl" placeholder="https://cdn.example.com/docs/bluebook.jpg" {...register('bluebookUrl')} />
+        {errors.bluebookUrl && <FormMessage>{errors.bluebookUrl.message}</FormMessage>}
+      </FormItem>
+      <FormItem>
+        <Label htmlFor="selfieUrl">Selfie URL</Label>
+        <Input id="selfieUrl" placeholder="https://cdn.example.com/photos/selfie.jpg" {...register('selfieUrl')} />
+        {errors.selfieUrl && <FormMessage>{errors.selfieUrl.message}</FormMessage>}
+      </FormItem>
+      <div className="grid grid-cols-2 gap-4">
+        <FormItem>
+          <Label htmlFor="emergencyName">Emergency Contact Name</Label>
+          <Input id="emergencyName" placeholder="Bishnu Tamang" {...register('emergencyName')} />
+          {errors.emergencyName && <FormMessage>{errors.emergencyName.message}</FormMessage>}
+        </FormItem>
+        <FormItem>
+          <Label htmlFor="emergencyPhone">Emergency Contact Phone</Label>
+          <Input id="emergencyPhone" placeholder="+9779800000001" {...register('emergencyPhone')} />
+          {errors.emergencyPhone && <FormMessage>{errors.emergencyPhone.message}</FormMessage>}
+        </FormItem>
+      </div>
       <FormItem>
         <Label htmlFor="password">Password</Label>
         <Input id="password" type="password" placeholder="••••••••" {...register('password')} />

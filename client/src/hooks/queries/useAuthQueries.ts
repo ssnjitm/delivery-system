@@ -1,6 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import type { LoginPayload, RegisterPayload, AuthResponse } from '@/types/auth'
+import type { LoginPayload, AuthResponse, ConsumerSignupPayload, VendorSignupPayload, DriverSignupPayload } from '@/types/auth'
+
+type SignupPayload = ConsumerSignupPayload | VendorSignupPayload | DriverSignupPayload
 
 export function useLoginMutation() {
   return useMutation({
@@ -9,10 +11,14 @@ export function useLoginMutation() {
   })
 }
 
-export function useRegisterMutation(role: 'vendor' | 'driver' | 'customer') {
+export function useRegisterMutation(_role: 'vendor' | 'driver' | 'customer') {
   return useMutation({
-    mutationFn: (payload: RegisterPayload) =>
-      api.post(`/auth/register/${role}`, payload) as Promise<unknown> as Promise<AuthResponse>,
+    mutationFn: (payload: SignupPayload) =>
+      api.post(`/auth/register/${_role}`, payload) as Promise<unknown> as Promise<{
+        success: boolean
+        message: string
+        data: { userId: string; role: string; isVerified: boolean }
+      }>,
   })
 }
 
