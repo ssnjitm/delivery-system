@@ -212,8 +212,6 @@ const TrackingSessionSchema = new Schema<ITrackingSession>(
 
 TrackingSessionSchema.index({ orderId: 1, driverId: 1 });
 TrackingSessionSchema.index({ status: 1, expiresAt: 1 });
-TrackingSessionSchema.index({ 'currentLocation.coordinates': '2dsphere' });
-
 export const TrackingSessionModel = mongoose.model<ITrackingSession>(
   'TrackingSession',
   TrackingSessionSchema,
