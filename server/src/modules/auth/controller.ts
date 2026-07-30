@@ -103,6 +103,10 @@ export class AuthController {
     // Store refresh token in database
     await AuthService.storeRefreshToken(user._id.toString(), tokens.refreshToken);
 
+    // Build name from role-specific fields
+    const userDoc = user as Record<string, any>;
+    const name = userDoc.fullName || userDoc.ownerName || userDoc.businessName || '';
+
     res.status(200).json({
       success: true,
       message: 'Authentication verification completed successfully.',
@@ -111,9 +115,13 @@ export class AuthController {
         refreshToken: tokens.refreshToken,
         user: {
           id: user._id,
+          phone: user.phone,
+          name,
+          email: userDoc.email,
           role: user.role,
-          phone: user.phone
-        }
+          isActive: user.isActive,
+          isVerified: user.isVerified
+            }
       }
     });
   }

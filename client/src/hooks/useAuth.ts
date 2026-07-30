@@ -1,8 +1,8 @@
 import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/axios'
-import { disconnectSocket } from '@/lib/socket'
+import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { useCallback } from 'react'
-import type { LoginPayload, AuthResponse, AuthUser, UserRole } from '@/types/auth'
+import type { LoginPayload, AuthUser, UserRole } from '@/types/auth'
 
 export function useAuth() {
   const {
@@ -16,10 +16,12 @@ export function useAuth() {
   } = useAuthStore()
 
   const login = useCallback(
-    async (payload: LoginPayload): Promise<AuthResponse> => {
-      const response = await api.post('/auth/login', payload) as unknown as AuthResponse
-      storeLogin(response.accessToken, response.refreshToken, response.user)
-      return response
+    async (payload: LoginPayload) => {
+      const response = await api.post('/auth/login', payload) as any
+      const { data } = response
+      storeLogin(data.accessToken, data.refreshToken, data.user)
+      connectSocket(data.accessToken)
+      return data
     },
     [storeLogin]
   )
@@ -36,20 +38,27 @@ export function useAuth() {
   }, [storeLogout])
 
   const refreshSession = useCallback(async () => {
-    if (!refreshToken) return
+    const token = useAuthStore.getState().refreshToken
+    if (!token) return
     try {
-      const response = await api.post('/auth/refresh', { refreshToken }) as unknown as AuthResponse
-      storeLogin(response.accessToken, response.refreshToken, response.user)
+      const response = await api.post('/auth/refresh', { refreshToken: token }) as any
+      const { data } = response
+      const currentUser = useAuthStore.getState().user
+      if (currentUser) {
+        storeLogin(data.accessToken, token, currentUser)
+        connectSocket(data.accessToken)
+      }
     } catch {
       storeLogout()
     }
-  }, [refreshToken, storeLogin, storeLogout])
+  }, [storeLogin, storeLogout])
 
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await api.get('/users/me') as unknown as { user: AuthUser }
-      setUser(response.user)
-      return response.user
+      const response = await api.get('/users/me') as any
+      const userData = response.data as AuthUser
+      setUser(userData)
+      return userData
     } catch {
       return null
     }
