@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
+import { unwrap, unwrapPaginated } from '@/hooks/reactQuery'
 import type { DashboardStats, AuditLog, Dispute, ReportData } from '@/types/admin'
 import type { IUser, IVendor, IDriver, ICustomer, INormalUser } from '@/types/user'
 import type { PaginationParams, PaginatedResponse } from '@/types/api'
@@ -15,7 +16,7 @@ export function useDashboardStats() {
 export function useAdminUsers(params: PaginationParams & { search?: string; role?: string } = {}) {
   return useQuery({
     queryKey: ['admin', 'users', params],
-    queryFn: () => api.get('/admin/users', { params }) as Promise<unknown> as Promise<PaginatedResponse<IUser>>,
+    queryFn: () => api.get('/admin/users', { params }).then(unwrapPaginated) as Promise<unknown> as Promise<PaginatedResponse<IUser>>,
     staleTime: 30_000,
   })
 }
@@ -51,7 +52,7 @@ export function useActivateUser() {
 export function useAuditLogs(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ['admin', 'audit-logs', params],
-    queryFn: () => api.get('/admin/audit-logs', { params }) as Promise<unknown> as Promise<PaginatedResponse<AuditLog>>,
+    queryFn: () => api.get('/admin/audit-logs', { params }).then(unwrapPaginated) as Promise<unknown> as Promise<PaginatedResponse<AuditLog>>,
     staleTime: 30_000,
   })
 }
@@ -59,7 +60,7 @@ export function useAuditLogs(params: PaginationParams = {}) {
 export function useDisputes(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ['admin', 'disputes', params],
-    queryFn: () => api.get('/admin/disputes', { params }) as Promise<unknown> as Promise<PaginatedResponse<Dispute>>,
+    queryFn: () => api.get('/admin/disputes', { params }).then(unwrapPaginated) as Promise<unknown> as Promise<PaginatedResponse<Dispute>>,
     staleTime: 30_000,
   })
 }
@@ -153,7 +154,7 @@ export function useSearchUsers(query: string) {
 export function useAllVendors() {
   return useQuery({
     queryKey: ['users', 'vendors'],
-    queryFn: () => api.get('/users/vendors') as Promise<unknown> as Promise<IVendor[]>,
+    queryFn: () => api.get('/users/vendors').then(unwrap) as Promise<unknown> as Promise<IVendor[]>,
     staleTime: 30_000,
   })
 }
@@ -181,7 +182,7 @@ export function useRejectVendor() {
 export function useAllDrivers() {
   return useQuery({
     queryKey: ['users', 'drivers'],
-    queryFn: () => api.get('/users/drivers') as Promise<unknown> as Promise<IDriver[]>,
+    queryFn: () => api.get('/users/drivers').then(unwrap) as Promise<unknown> as Promise<IDriver[]>,
     staleTime: 30_000,
   })
 }
@@ -209,7 +210,7 @@ export function useRejectDriver() {
 export function useAllCustomers() {
   return useQuery({
     queryKey: ['users', 'customers'],
-    queryFn: () => api.get('/users/customers') as Promise<unknown> as Promise<ICustomer[]>,
+    queryFn: () => api.get('/users/customers').then(unwrap) as Promise<unknown> as Promise<ICustomer[]>,
     staleTime: 30_000,
   })
 }
@@ -217,7 +218,7 @@ export function useAllCustomers() {
 export function useAllNormalUsers() {
   return useQuery({
     queryKey: ['users', 'normal-users'],
-    queryFn: () => api.get('/users/normal-users') as Promise<unknown> as Promise<INormalUser[]>,
+    queryFn: () => api.get('/users/normal-users').then(unwrap) as Promise<unknown> as Promise<INormalUser[]>,
     staleTime: 30_000,
   })
 }

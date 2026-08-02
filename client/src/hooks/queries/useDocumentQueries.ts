@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
+import { unwrap } from '@/hooks/reactQuery'
 import type { Document, VerificationRequest } from '@/types/document'
 
 export function useUploadDocument() {
@@ -18,7 +19,7 @@ export function useUploadDocument() {
 export function useMyDocuments() {
   return useQuery({
     queryKey: ['documents', 'my'],
-    queryFn: () => api.get('/documents/my') as Promise<unknown> as Promise<Document[]>,
+    queryFn: () => api.get('/documents/my').then(unwrap) as Promise<unknown> as Promise<Document[]>,
     staleTime: 30_000,
   })
 }
@@ -49,7 +50,7 @@ export function useDeleteDocument() {
 export function usePendingVerifications() {
   return useQuery({
     queryKey: ['documents', 'admin', 'pending'],
-    queryFn: () => api.get('/documents/admin/pending') as Promise<unknown> as Promise<Document[]>,
+    queryFn: () => api.get('/documents/admin/pending').then(unwrap) as Promise<unknown> as Promise<Document[]>,
     staleTime: 30_000,
   })
 }
@@ -68,7 +69,7 @@ export function useVerifyDocument() {
 export function useUserDocuments(userId: string) {
   return useQuery({
     queryKey: ['documents', 'admin', 'users', userId],
-    queryFn: () => api.get(`/documents/admin/users/${userId}`) as Promise<unknown> as Promise<Document[]>,
+    queryFn: () => api.get(`/documents/admin/users/${userId}`).then(unwrap) as Promise<unknown> as Promise<Document[]>,
     enabled: !!userId,
   })
 }

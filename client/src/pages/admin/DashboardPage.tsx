@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Users" value={s?.totalUsers ?? 0} icon={Users} accent="brand" isLoading={isLoading} />
         <StatCard title="Orders Today" value={s?.ordersToday ?? 0} icon={ShoppingBag} accent="info" isLoading={isLoading} description={`${s?.ordersPending ?? 0} pending`} />
-        <StatCard title="Revenue Today" value={s?.revenueToday ? formatCurrency(s.revenueToday) : 'PKR 0'} icon={DollarSign} accent="success" isLoading={isLoading} />
+        <StatCard title="Revenue Today" value={s?.revenueToday ? formatCurrency(s.revenueToday) : 'NPR 0'} icon={DollarSign} accent="success" isLoading={isLoading} />
         <StatCard title="Pending Verifications" value={s?.pendingVerifications ?? 0} icon={FileCheck} accent="warning" isLoading={isLoading} />
       </div>
 

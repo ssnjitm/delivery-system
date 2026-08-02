@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
+import { unwrap } from '@/hooks/reactQuery'
 import type { AreaPricing, PricingConfig, PriceBreakdown } from '@/types/pricing'
 
 export function useCalculatePrice() {
@@ -30,7 +31,7 @@ export function useUpdatePricingConfig() {
 export function useAreaPricing() {
   return useQuery({
     queryKey: ['pricing', 'areas'],
-    queryFn: () => api.get('/pricing/admin/areas') as Promise<unknown> as Promise<AreaPricing[]>,
+    queryFn: () => api.get('/pricing/admin/areas').then(unwrap) as Promise<unknown> as Promise<AreaPricing[]>,
     staleTime: 60_000,
   })
 }

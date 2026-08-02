@@ -26,9 +26,9 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
       />
       <StatsCard
         title="Revenue Today"
-        value={stats?.revenueToday ? formatCurrency(stats.revenueToday) : 'PKR 0'}
+        value={stats?.revenueToday ? formatCurrency(stats.revenueToday) : 'NPR 0'}
         icon={DollarSign}
-        description={`Week: ${stats?.revenueWeek ? formatCurrency(stats.revenueWeek) : 'PKR 0'}`}
+        description={`Week: ${stats?.revenueWeek ? formatCurrency(stats.revenueWeek) : 'NPR 0'}`}
         isLoading={isLoading}
       />
       <StatsCard

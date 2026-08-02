@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
+import { unwrap, unwrapPaginated } from '@/hooks/reactQuery'
 import type { IOrder, CreateOrderPayload } from '@/types/order'
 import type { PaginationParams, PaginatedResponse } from '@/types/api'
 
 export function useMyOrders(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ['orders', 'my', params],
-    queryFn: () => api.get('/orders/my', { params }) as Promise<unknown> as Promise<PaginatedResponse<IOrder>>,
+    queryFn: () => api.get('/orders/my', { params }).then(unwrapPaginated) as Promise<PaginatedResponse<IOrder>>,
     staleTime: 30_000,
   })
 }
@@ -80,7 +81,7 @@ export function useOrderStats() {
 export function useAllOrders(params: PaginationParams & { status?: string } = {}) {
   return useQuery({
     queryKey: ['orders', 'admin', params],
-    queryFn: () => api.get('/orders/admin/all', { params }) as Promise<unknown> as Promise<PaginatedResponse<IOrder>>,
+    queryFn: () => api.get('/orders/admin/all', { params }).then(unwrapPaginated) as Promise<unknown> as Promise<PaginatedResponse<IOrder>>,
     staleTime: 30_000,
   })
 }
