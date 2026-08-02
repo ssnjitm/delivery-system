@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import { unwrap, unwrapPaginated } from '@/hooks/reactQuery'
+import { unwrap, unwrapKeyed, unwrapPaginated } from '@/hooks/reactQuery'
 import type { IOrder, CreateOrderPayload } from '@/types/order'
 import type { PaginationParams, PaginatedResponse } from '@/types/api'
 
@@ -15,7 +15,7 @@ export function useMyOrders(params: PaginationParams = {}) {
 export function useOrderDetail(id: string) {
   return useQuery({
     queryKey: ['orders', id],
-    queryFn: () => api.get(`/orders/${id}`) as Promise<unknown> as Promise<{ order: IOrder }>,
+    queryFn: () => api.get(`/orders/${id}`).then(unwrapKeyed('order')) as Promise<unknown> as Promise<{ order: IOrder }>,
     enabled: !!id,
   })
 }
@@ -23,7 +23,7 @@ export function useOrderDetail(id: string) {
 export function useOrderByOrderId(orderId: string) {
   return useQuery({
     queryKey: ['orders', 'order-id', orderId],
-    queryFn: () => api.get(`/orders/order-id/${orderId}`) as Promise<unknown> as Promise<{ order: IOrder }>,
+    queryFn: () => api.get(`/orders/order-id/${orderId}`).then(unwrapKeyed('order')) as Promise<unknown> as Promise<{ order: IOrder }>,
     enabled: !!orderId,
   })
 }

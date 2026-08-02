@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import { unwrap, unwrapPaginated } from '@/hooks/reactQuery'
+import { unwrap, unwrapKeyed, unwrapPaginated } from '@/hooks/reactQuery'
 import type { DashboardStats, AuditLog, Dispute, ReportData } from '@/types/admin'
 import type { IUser, IVendor, IDriver, ICustomer, INormalUser } from '@/types/user'
 import type { PaginationParams, PaginatedResponse } from '@/types/api'
@@ -8,7 +8,7 @@ import type { PaginationParams, PaginatedResponse } from '@/types/api'
 export function useDashboardStats() {
   return useQuery({
     queryKey: ['admin', 'dashboard', 'stats'],
-    queryFn: () => api.get('/admin/dashboard/stats') as Promise<unknown> as Promise<DashboardStats>,
+    queryFn: () => api.get('/admin/dashboard/stats').then(unwrap) as Promise<unknown> as Promise<DashboardStats>,
     staleTime: 60_000,
   })
 }
@@ -24,7 +24,7 @@ export function useAdminUsers(params: PaginationParams & { search?: string; role
 export function useAdminUserDetail(userId: string) {
   return useQuery({
     queryKey: ['admin', 'users', userId],
-    queryFn: () => api.get(`/admin/users/${userId}`) as Promise<unknown> as Promise<{ user: IUser }>,
+    queryFn: () => api.get(`/admin/users/${userId}`).then(unwrapKeyed('user')) as Promise<unknown> as Promise<{ user: IUser }>,
     enabled: !!userId,
   })
 }
@@ -68,7 +68,7 @@ export function useDisputes(params: PaginationParams = {}) {
 export function useDisputeDetail(disputeId: string) {
   return useQuery({
     queryKey: ['admin', 'disputes', disputeId],
-    queryFn: () => api.get(`/admin/disputes/${disputeId}`) as Promise<unknown> as Promise<{ dispute: Dispute }>,
+    queryFn: () => api.get(`/admin/disputes/${disputeId}`).then(unwrapKeyed('dispute')) as Promise<unknown> as Promise<{ dispute: Dispute }>,
     enabled: !!disputeId,
   })
 }
@@ -98,28 +98,28 @@ export function useUpdateDisputeStatus() {
 export function useOrderReport(params: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: ['admin', 'reports', 'orders', params],
-    queryFn: () => api.get('/admin/reports/orders', { params }) as Promise<unknown> as Promise<ReportData>,
+    queryFn: () => api.get('/admin/reports/orders', { params }).then(unwrap) as Promise<unknown> as Promise<ReportData>,
   })
 }
 
 export function useRevenueReport(params: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: ['admin', 'reports', 'revenue', params],
-    queryFn: () => api.get('/admin/reports/revenue', { params }) as Promise<unknown> as Promise<ReportData>,
+    queryFn: () => api.get('/admin/reports/revenue', { params }).then(unwrap) as Promise<unknown> as Promise<ReportData>,
   })
 }
 
 export function useDriverPerformance(params: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: ['admin', 'reports', 'drivers', params],
-    queryFn: () => api.get('/admin/reports/drivers', { params }) as Promise<unknown> as Promise<ReportData>,
+    queryFn: () => api.get('/admin/reports/drivers', { params }).then(unwrap) as Promise<unknown> as Promise<ReportData>,
   })
 }
 
 export function useVendorPerformance(params: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: ['admin', 'reports', 'vendors', params],
-    queryFn: () => api.get('/admin/reports/vendors', { params }) as Promise<unknown> as Promise<ReportData>,
+    queryFn: () => api.get('/admin/reports/vendors', { params }).then(unwrap) as Promise<unknown> as Promise<ReportData>,
   })
 }
 
@@ -146,7 +146,7 @@ export function useBulkVerifyDrivers() {
 export function useSearchUsers(query: string) {
   return useQuery({
     queryKey: ['admin', 'search', query],
-    queryFn: () => api.get('/admin/search/users', { params: { q: query } }) as Promise<unknown> as Promise<IUser[]>,
+    queryFn: () => api.get('/admin/search/users', { params: { q: query } }).then(unwrap) as Promise<unknown> as Promise<IUser[]>,
     enabled: query.length >= 2,
   })
 }
@@ -226,7 +226,7 @@ export function useAllNormalUsers() {
 export function useUserStats() {
   return useQuery({
     queryKey: ['users', 'stats'],
-    queryFn: () => api.get('/users/stats') as Promise<unknown> as Promise<Record<string, number>>,
+    queryFn: () => api.get('/users/stats').then(unwrap) as Promise<unknown> as Promise<Record<string, number>>,
     staleTime: 60_000,
   })
 }
