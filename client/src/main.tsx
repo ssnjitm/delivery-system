@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom'
 import { router } from '@/router'
 import { injectStore } from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
+import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import './index.css'
 
@@ -24,6 +25,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider />
       <Suspense fallback={
         <div className="flex h-screen items-center justify-center">
           <LoadingSpinner size="lg" message="Loading..." />

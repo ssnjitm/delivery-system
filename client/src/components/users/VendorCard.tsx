@@ -17,7 +17,7 @@ export function VendorCard({ vendor, onApprove, onReject, loading }: VendorCardP
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Store className="h-5 w-5 text-purple-600" />
+            <Store className="h-5 w-5 text-brand-600" />
             <span className="font-semibold">{vendor.businessName || vendor.name}</span>
           </div>
           <Badge variant={vendor.isApproved ? 'default' : 'secondary'}>

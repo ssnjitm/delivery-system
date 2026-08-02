@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export interface Toast {
   id: string
@@ -19,22 +20,30 @@ interface UIState {
   removeToast: (id: string) => void
 }
 
-export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: false,
-  theme: 'light',
-  toasts: [],
-  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  setTheme: (theme) => set({ theme }),
-  addToast: (toast) =>
-    set((state) => ({
-      toasts: [
-        ...state.toasts,
-        { ...toast, id: crypto.randomUUID() },
-      ],
-    })),
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
-}))
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      sidebarOpen: false,
+      theme: 'light',
+      toasts: [],
+      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      setTheme: (theme) => set({ theme }),
+      addToast: (toast) =>
+        set((state) => ({
+          toasts: [
+            ...state.toasts,
+            { ...toast, id: crypto.randomUUID() },
+          ],
+        })),
+      removeToast: (id) =>
+        set((state) => ({
+          toasts: state.toasts.filter((t) => t.id !== id),
+        })),
+    }),
+    {
+      name: 'delivery-ui-storage',
+      partialize: (state) => ({ theme: state.theme }),
+    }
+  )
+)
