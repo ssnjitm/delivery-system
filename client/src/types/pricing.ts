@@ -12,14 +12,17 @@ export interface PricingRule {
 
 export interface AreaPricing {
   _id: string
-  name: string
-  area: {
-    type: 'Polygon'
-    coordinates: number[][][]
+  area: string
+  city: string
+  type: 'PICKUP' | 'DELIVERY' | 'BOTH'
+  surcharge: {
+    type: 'FIXED' | 'PERCENTAGE'
+    amount: number
   }
-  basePrice: number
-  pricePerKm: number
   isActive: boolean
+  metadata?: Record<string, unknown>
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface PriceBreakdown {
@@ -33,12 +36,15 @@ export interface PriceBreakdown {
 }
 
 export interface PricingConfig {
-  defaultCurrency: string
-  surgeThreshold: number
-  surgeMultiplier: number
-  discountPercentages: {
-    firstOrder: number
-    referral: number
-    bulk: number
-  }
+  defaultBasePrice: number
+  defaultPerKmRate: number
+  minimumFee: number
+  maximumFee: number
+  peakHourMultipliers?: Record<string, number>
+  packageTypeMultipliers?: Record<string, number>
+  distanceBrackets?: Array<{ min: number; max: number; rate: number }>
+  specialHandlingFee: number
+  currency: string
+  useDynamicPricing: boolean
+  maxDistanceForDelivery: number
 }

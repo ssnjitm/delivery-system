@@ -31,18 +31,19 @@ export interface BatchGroup {
 }
 
 export interface DispatchConfig {
+  defaultSearchRadius: number
   maxSearchRadius: number
-  maxWaitTime: number
-  retryDelay: number
-  maxRetries: number
-  scoringWeights: {
+  maxDriversToNotify: number
+  driverResponseTimeout: number
+  maxRetryAttempts: number
+  batchMaxOrders: number
+  batchMaxDetourDistance: number
+  scoringWeights?: {
     distance: number
     rating: number
-    earnings: number
-    workload: number
+    deliveryHistory: number
+    availability: number
   }
-  batchEnabled: boolean
-  maxBatchOrders: number
 }
 
 

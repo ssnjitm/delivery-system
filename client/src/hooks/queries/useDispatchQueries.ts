@@ -43,7 +43,7 @@ export function useBatchSuggestions() {
 export function useDispatchConfig() {
   return useQuery({
     queryKey: ['dispatch', 'config'],
-    queryFn: () => api.get('/dispatch/admin/config') as Promise<unknown> as Promise<{ config: DispatchConfig }>,
+    queryFn: () => api.get('/dispatch/admin/config').then(unwrapKeyed('config')) as Promise<unknown> as Promise<{ config: DispatchConfig }>,
     staleTime: 60_000,
   })
 }

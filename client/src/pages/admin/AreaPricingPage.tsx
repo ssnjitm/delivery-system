@@ -6,8 +6,12 @@ import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { Plus, Pencil } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
 import type { AreaPricing } from '@/types/pricing'
+
+const formatSurcharge = (area: AreaPricing) =>
+  area.surcharge?.type === 'PERCENTAGE'
+    ? `${area.surcharge.amount}%`
+    : `${area.surcharge?.amount ?? 0} (fixed)`
 
 export default function AreaPricingPage() {
   const { data: areas, isLoading, error, refetch } = useAreaPricing()
@@ -46,20 +50,22 @@ export default function AreaPricingPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {areas?.map((area) => (
+        {(areas ?? []).map((area) => (
           <Card key={area._id}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">{area.name}</CardTitle>
+                <CardTitle className="text-sm">{area.area}</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => { setEditing(area); setShowForm(true) }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="text-sm space-y-1">
-              <p>Base: {formatCurrency(area.basePrice)}</p>
-              <p>Per Km: {formatCurrency(area.pricePerKm)}</p>
+              <p>City: {area.city}</p>
+              <p>Surcharge: {formatSurcharge(area)}</p>
               <p className="text-xs text-muted-foreground">
+                {area.type === 'PICKUP' ? 'Pickup only' : area.type === 'DELIVERY' ? 'Delivery only' : 'Pickup & Delivery'}
+                {' · '}
                 {area.isActive ? 'Active' : 'Inactive'}
               </p>
             </CardContent>

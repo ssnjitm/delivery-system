@@ -38,6 +38,12 @@ const UpdateConfigSchema = z.object({
   maxRetryAttempts: z.number().optional(),
   batchMaxOrders: z.number().optional(),
   batchMaxDetourDistance: z.number().optional(),
+  scoringWeights: z.object({
+    distance: z.number().optional(),
+    rating: z.number().optional(),
+    deliveryHistory: z.number().optional(),
+    availability: z.number().optional(),
+  }).optional(),
 });
 
 

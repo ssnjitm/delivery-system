@@ -4,17 +4,25 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FormItem } from '@/components/ui/form'
+import { FormItem, FormMessage } from '@/components/ui/form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PricingConfig } from '@/types/pricing'
 
+const numericField = (msg = 'Valid number required') =>
+  z.string().refine((v) => !isNaN(Number(v)) && v.trim() !== '', msg)
+
 const schema = z.object({
-  defaultCurrency: z.string().min(1),
-  surgeThreshold: z.string(),
-  surgeMultiplier: z.string(),
-  firstOrderDiscount: z.string(),
-  referralDiscount: z.string(),
-  bulkDiscount: z.string(),
+  currency: z.string().min(1, 'Currency is required'),
+  defaultBasePrice: numericField(),
+  defaultPerKmRate: numericField(),
+  minimumFee: numericField(),
+  maximumFee: numericField(),
+  specialHandlingFee: numericField(),
+  maxDistanceForDelivery: numericField(),
+  useDynamicPricing: z.boolean(),
+  peakHourMultipliers: z.string().optional(),
+  packageTypeMultipliers: z.string().optional(),
+  distanceBrackets: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -25,30 +33,55 @@ interface PricingConfigFormProps {
   isSaving?: boolean
 }
 
+const toNumber = (v?: number | null) => (v === undefined || v === null ? '' : String(v))
+
+const stringifyJSON = (value: unknown) => JSON.stringify(value ?? {}, null, 2)
+
 export function PricingConfigForm({ config, onSave, isSaving }: PricingConfigFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     values: config ? {
-      defaultCurrency: config.defaultCurrency,
-      surgeThreshold: String(config.surgeThreshold),
-      surgeMultiplier: String(config.surgeMultiplier),
-      firstOrderDiscount: String(config.discountPercentages.firstOrder),
-      referralDiscount: String(config.discountPercentages.referral),
-      bulkDiscount: String(config.discountPercentages.bulk),
+      currency: config.currency ?? '',
+      defaultBasePrice: toNumber(config.defaultBasePrice),
+      defaultPerKmRate: toNumber(config.defaultPerKmRate),
+      minimumFee: toNumber(config.minimumFee),
+      maximumFee: toNumber(config.maximumFee),
+      specialHandlingFee: toNumber(config.specialHandlingFee),
+      maxDistanceForDelivery: toNumber(config.maxDistanceForDelivery),
+      useDynamicPricing: !!config.useDynamicPricing,
+      peakHourMultipliers: stringifyJSON(config.peakHourMultipliers),
+      packageTypeMultipliers: stringifyJSON(config.packageTypeMultipliers),
+      distanceBrackets: stringifyJSON(config.distanceBrackets),
     } : undefined,
   })
 
   const handleSubmit = async (data: FormData) => {
-    await onSave({
-      defaultCurrency: data.defaultCurrency,
-      surgeThreshold: Number(data.surgeThreshold),
-      surgeMultiplier: Number(data.surgeMultiplier),
-      discountPercentages: {
-        firstOrder: Number(data.firstOrderDiscount),
-        referral: Number(data.referralDiscount),
-        bulk: Number(data.bulkDiscount),
-      },
-    })
+    const payload: Partial<PricingConfig> = {
+      currency: data.currency,
+      defaultBasePrice: Number(data.defaultBasePrice),
+      defaultPerKmRate: Number(data.defaultPerKmRate),
+      minimumFee: Number(data.minimumFee),
+      maximumFee: Number(data.maximumFee),
+      specialHandlingFee: Number(data.specialHandlingFee),
+      maxDistanceForDelivery: Number(data.maxDistanceForDelivery),
+      useDynamicPricing: data.useDynamicPricing,
+    }
+
+    for (const [key, raw] of [
+      ['peakHourMultipliers', data.peakHourMultipliers],
+      ['packageTypeMultipliers', data.packageTypeMultipliers],
+      ['distanceBrackets', data.distanceBrackets],
+    ] as const) {
+      if (raw) {
+        try {
+          ;(payload as Record<string, unknown>)[key] = JSON.parse(raw)
+        } catch {
+          // Ignore invalid JSON; keep the previous value untouched.
+        }
+      }
+    }
+
+    await onSave(payload)
   }
 
   return (
@@ -58,25 +91,49 @@ export function PricingConfigForm({ config, onSave, isSaving }: PricingConfigFor
         <CardContent>
           <FormItem>
             <Label>Default Currency</Label>
-            <Input {...form.register('defaultCurrency')} placeholder="PKR" />
+            <Input {...form.register('currency')} placeholder="NPR" />
+            {form.formState.errors.currency && <FormMessage>{form.formState.errors.currency.message}</FormMessage>}
           </FormItem>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg">Surge Pricing</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">Base Pricing</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <FormItem><Label>Surge Threshold</Label><Input {...form.register('surgeThreshold')} type="number" /></FormItem>
-          <FormItem><Label>Surge Multiplier</Label><Input {...form.register('surgeMultiplier')} type="number" step="0.1" /></FormItem>
+          <FormItem><Label>Default Base Price</Label><Input {...form.register('defaultBasePrice')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Default Rate per Km</Label><Input {...form.register('defaultPerKmRate')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Minimum Fee</Label><Input {...form.register('minimumFee')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Maximum Fee</Label><Input {...form.register('maximumFee')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Special Handling Fee</Label><Input {...form.register('specialHandlingFee')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Max Distance for Delivery (km)</Label><Input {...form.register('maxDistanceForDelivery')} type="number" step="0.01" /></FormItem>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg">Discounts (%)</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <FormItem><Label>First Order</Label><Input {...form.register('firstOrderDiscount')} type="number" /></FormItem>
-          <FormItem><Label>Referral</Label><Input {...form.register('referralDiscount')} type="number" /></FormItem>
-          <FormItem><Label>Bulk</Label><Input {...form.register('bulkDiscount')} type="number" /></FormItem>
+        <CardHeader><CardTitle className="text-lg">Dynamic Pricing</CardTitle></CardHeader>
+        <CardContent>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" {...form.register('useDynamicPricing')} className="rounded" />
+            Enable dynamic pricing
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Advanced (JSON)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <FormItem>
+            <Label>Peak Hour Multipliers</Label>
+            <Input {...form.register('peakHourMultipliers')} className="font-mono text-xs" />
+          </FormItem>
+          <FormItem>
+            <Label>Package Type Multipliers</Label>
+            <Input {...form.register('packageTypeMultipliers')} className="font-mono text-xs" />
+          </FormItem>
+          <FormItem>
+            <Label>Distance Brackets</Label>
+            <Input {...form.register('distanceBrackets')} className="font-mono text-xs" />
+          </FormItem>
         </CardContent>
       </Card>
 

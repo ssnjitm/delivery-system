@@ -7,6 +7,7 @@ import { injectStore } from '@/lib/axios'
 import { useAuthStore } from '@/store/authStore'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import './index.css'
 
 injectStore(useAuthStore)
@@ -26,13 +27,15 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider />
-      <Suspense fallback={
-        <div className="flex h-screen items-center justify-center">
-          <LoadingSpinner size="lg" message="Loading..." />
-        </div>
-      }>
-        <RouterProvider router={router} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={
+          <div className="flex h-screen items-center justify-center">
+            <LoadingSpinner size="lg" message="Loading..." />
+          </div>
+        }>
+          <RouterProvider router={router} />
+        </Suspense>
+      </ErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,
 )

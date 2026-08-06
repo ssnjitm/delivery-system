@@ -8,10 +8,11 @@ import { FormItem, FormMessage } from '@/components/ui/form'
 import type { AreaPricing } from '@/types/pricing'
 
 const schema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  basePrice: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Valid number required'),
-  pricePerKm: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Valid number required'),
-  coordinates: z.string().min(4, 'Coordinates required (comma-separated pairs)'),
+  area: z.string().min(2, 'Area is required'),
+  city: z.string().min(1, 'City is required'),
+  type: z.enum(['PICKUP', 'DELIVERY', 'BOTH']),
+  surchargeType: z.enum(['FIXED', 'PERCENTAGE']),
+  surchargeAmount: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Valid number required'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -26,53 +27,61 @@ export function AreaPricingForm({ area, onSave, isSaving }: AreaPricingFormProps
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     values: area ? {
-      name: area.name,
-      basePrice: String(area.basePrice),
-      pricePerKm: String(area.pricePerKm),
-      coordinates: JSON.stringify(area.area.coordinates),
+      area: area.area,
+      city: area.city,
+      type: area.type,
+      surchargeType: area.surcharge?.type ?? 'FIXED',
+      surchargeAmount: area.surcharge ? String(area.surcharge.amount) : '',
     } : undefined,
   })
 
   const handleSubmit = async (data: FormData) => {
-    let parsedCoords: number[][][]
-    try {
-      parsedCoords = JSON.parse(data.coordinates)
-    } catch {
-      return
-    }
     await onSave({
-      name: data.name,
-      basePrice: Number(data.basePrice),
-      pricePerKm: Number(data.pricePerKm),
-      area: {
-        type: 'Polygon',
-        coordinates: parsedCoords,
+      area: data.area,
+      city: data.city,
+      type: data.type,
+      surcharge: {
+        type: data.surchargeType,
+        amount: Number(data.surchargeAmount),
       },
     })
   }
 
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-      <FormItem>
-        <Label>Area Name</Label>
-        <Input {...form.register('name')} placeholder="Downtown" />
-      </FormItem>
       <div className="grid grid-cols-2 gap-4">
         <FormItem>
-          <Label>Base Price</Label>
-          <Input {...form.register('basePrice')} type="number" step="0.01" />
+          <Label>Area</Label>
+          <Input {...form.register('area')} placeholder="Downtown" />
+          {form.formState.errors.area && <FormMessage>{form.formState.errors.area.message}</FormMessage>}
         </FormItem>
         <FormItem>
-          <Label>Price per Km</Label>
-          <Input {...form.register('pricePerKm')} type="number" step="0.01" />
+          <Label>City</Label>
+          <Input {...form.register('city')} placeholder="Kathmandu" />
+          {form.formState.errors.city && <FormMessage>{form.formState.errors.city.message}</FormMessage>}
+        </FormItem>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <FormItem>
+          <Label>Applies To</Label>
+          <select {...form.register('type')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="PICKUP">Pickup only</option>
+            <option value="DELIVERY">Delivery only</option>
+            <option value="BOTH">Pickup &amp; Delivery</option>
+          </select>
+        </FormItem>
+        <FormItem>
+          <Label>Surcharge Type</Label>
+          <select {...form.register('surchargeType')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="FIXED">Fixed amount</option>
+            <option value="PERCENTAGE">Percentage</option>
+          </select>
         </FormItem>
       </div>
       <FormItem>
-        <Label>
-          Polygon Coordinates (JSON format: [[[lng,lat],[lng,lat],...]])
-        </Label>
-        <Input {...form.register('coordinates')} placeholder='[[[85.3,27.7],[85.32,27.72],[85.33,27.71]]]' />
-        {form.formState.errors.coordinates && <FormMessage>{form.formState.errors.coordinates.message}</FormMessage>}
+        <Label>Surcharge Amount</Label>
+        <Input {...form.register('surchargeAmount')} type="number" step="0.01" />
+        {form.formState.errors.surchargeAmount && <FormMessage>{form.formState.errors.surchargeAmount.message}</FormMessage>}
       </FormItem>
       <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Area Pricing'}</Button>
     </form>

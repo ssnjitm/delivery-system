@@ -4,21 +4,24 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FormItem } from '@/components/ui/form'
+import { FormItem, FormMessage } from '@/components/ui/form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { DispatchConfig } from '@/types/dispatch'
 
+const positiveNumber = (msg: string) => z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, msg)
+
 const configSchema = z.object({
-  maxSearchRadius: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, 'Must be > 0'),
-  maxWaitTime: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, 'Must be > 0'),
-  retryDelay: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, 'Must be > 0'),
-  maxRetries: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Must be >= 0'),
-  maxBatchOrders: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0, 'Must be > 0'),
+  defaultSearchRadius: positiveNumber('Must be >= 0'),
+  maxSearchRadius: positiveNumber('Must be >= 0'),
+  maxDriversToNotify: positiveNumber('Must be >= 0'),
+  driverResponseTimeout: positiveNumber('Must be >= 0'),
+  maxRetryAttempts: positiveNumber('Must be >= 0'),
+  batchMaxOrders: positiveNumber('Must be >= 0'),
+  batchMaxDetourDistance: positiveNumber('Must be >= 0'),
   weightDistance: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
   weightRating: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
-  weightEarnings: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
-  weightWorkload: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
-  batchEnabled: z.boolean(),
+  weightDeliveryHistory: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
+  weightAvailability: z.string().refine((v) => !isNaN(Number(v)), 'Required'),
 })
 
 type ConfigFormData = z.infer<typeof configSchema>
@@ -29,37 +32,41 @@ interface DispatchConfigFormProps {
   isSaving?: boolean
 }
 
+const toNumber = (v?: number | null) => (v === undefined || v === null ? '' : String(v))
+
 export function DispatchConfigForm({ config, onSave, isSaving }: DispatchConfigFormProps) {
   const form = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
     values: config ? {
-      maxSearchRadius: String(config.maxSearchRadius),
-      maxWaitTime: String(config.maxWaitTime),
-      retryDelay: String(config.retryDelay),
-      maxRetries: String(config.maxRetries),
-      maxBatchOrders: String(config.maxBatchOrders),
-      weightDistance: String(config.scoringWeights.distance),
-      weightRating: String(config.scoringWeights.rating),
-      weightEarnings: String(config.scoringWeights.earnings),
-      weightWorkload: String(config.scoringWeights.workload),
-      batchEnabled: config.batchEnabled,
+      defaultSearchRadius: toNumber(config.defaultSearchRadius),
+      maxSearchRadius: toNumber(config.maxSearchRadius),
+      maxDriversToNotify: toNumber(config.maxDriversToNotify),
+      driverResponseTimeout: toNumber(config.driverResponseTimeout),
+      maxRetryAttempts: toNumber(config.maxRetryAttempts),
+      batchMaxOrders: toNumber(config.batchMaxOrders),
+      batchMaxDetourDistance: toNumber(config.batchMaxDetourDistance),
+      weightDistance: toNumber(config.scoringWeights?.distance),
+      weightRating: toNumber(config.scoringWeights?.rating),
+      weightDeliveryHistory: toNumber(config.scoringWeights?.deliveryHistory),
+      weightAvailability: toNumber(config.scoringWeights?.availability),
     } : undefined,
   })
 
   const onSubmit = async (data: ConfigFormData) => {
     await onSave({
+      defaultSearchRadius: Number(data.defaultSearchRadius),
       maxSearchRadius: Number(data.maxSearchRadius),
-      maxWaitTime: Number(data.maxWaitTime),
-      retryDelay: Number(data.retryDelay),
-      maxRetries: Number(data.maxRetries),
-      maxBatchOrders: Number(data.maxBatchOrders),
+      maxDriversToNotify: Number(data.maxDriversToNotify),
+      driverResponseTimeout: Number(data.driverResponseTimeout),
+      maxRetryAttempts: Number(data.maxRetryAttempts),
+      batchMaxOrders: Number(data.batchMaxOrders),
+      batchMaxDetourDistance: Number(data.batchMaxDetourDistance),
       scoringWeights: {
         distance: Number(data.weightDistance),
         rating: Number(data.weightRating),
-        earnings: Number(data.weightEarnings),
-        workload: Number(data.weightWorkload),
+        deliveryHistory: Number(data.weightDeliveryHistory),
+        availability: Number(data.weightAvailability),
       },
-      batchEnabled: data.batchEnabled,
     })
   }
 
@@ -68,31 +75,52 @@ export function DispatchConfigForm({ config, onSave, isSaving }: DispatchConfigF
       <Card>
         <CardHeader><CardTitle className="text-lg">Search Settings</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <FormItem><Label>Max Search Radius (km)</Label><Input {...form.register('maxSearchRadius')} /></FormItem>
-          <FormItem><Label>Max Wait Time (s)</Label><Input {...form.register('maxWaitTime')} /></FormItem>
-          <FormItem><Label>Retry Delay (s)</Label><Input {...form.register('retryDelay')} /></FormItem>
-          <FormItem><Label>Max Retries</Label><Input {...form.register('maxRetries')} /></FormItem>
+          <FormItem>
+            <Label>Default Search Radius (m)</Label>
+            <Input {...form.register('defaultSearchRadius')} type="number" />
+            {form.formState.errors.defaultSearchRadius && <FormMessage>{form.formState.errors.defaultSearchRadius.message}</FormMessage>}
+          </FormItem>
+          <FormItem>
+            <Label>Max Search Radius (m)</Label>
+            <Input {...form.register('maxSearchRadius')} type="number" />
+            {form.formState.errors.maxSearchRadius && <FormMessage>{form.formState.errors.maxSearchRadius.message}</FormMessage>}
+          </FormItem>
+          <FormItem>
+            <Label>Max Drivers to Notify</Label>
+            <Input {...form.register('maxDriversToNotify')} type="number" />
+          </FormItem>
+          <FormItem>
+            <Label>Driver Response Timeout (s)</Label>
+            <Input {...form.register('driverResponseTimeout')} type="number" />
+          </FormItem>
+          <FormItem>
+            <Label>Max Retry Attempts</Label>
+            <Input {...form.register('maxRetryAttempts')} type="number" />
+          </FormItem>
+          <FormItem>
+            <Label>Max Detour Distance for Batches (m)</Label>
+            <Input {...form.register('batchMaxDetourDistance')} type="number" />
+          </FormItem>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Batch Settings</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <FormItem>
+            <Label>Max Orders per Batch</Label>
+            <Input {...form.register('batchMaxOrders')} type="number" />
+          </FormItem>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-lg">Scoring Weights</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <FormItem><Label>Distance</Label><Input {...form.register('weightDistance')} /></FormItem>
-          <FormItem><Label>Rating</Label><Input {...form.register('weightRating')} /></FormItem>
-          <FormItem><Label>Earnings</Label><Input {...form.register('weightEarnings')} /></FormItem>
-          <FormItem><Label>Workload</Label><Input {...form.register('weightWorkload')} /></FormItem>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-lg">Batch Settings</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...form.register('batchEnabled')} className="rounded" />
-            Enable Batch Orders
-          </label>
-          <FormItem><Label>Max Batch Orders</Label><Input {...form.register('maxBatchOrders')} /></FormItem>
+          <FormItem><Label>Distance</Label><Input {...form.register('weightDistance')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Rating</Label><Input {...form.register('weightRating')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Delivery History</Label><Input {...form.register('weightDeliveryHistory')} type="number" step="0.01" /></FormItem>
+          <FormItem><Label>Availability</Label><Input {...form.register('weightAvailability')} type="number" step="0.01" /></FormItem>
         </CardContent>
       </Card>
 
