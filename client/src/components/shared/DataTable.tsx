@@ -33,9 +33,12 @@ export function DataTable<T>({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(1)
 
+  const rows = Array.isArray(data) ? (data as T[]) : []
+
   const sorted = useMemo(() => {
-    if (!sortKey) return data
-    return [...data].sort((a, b) => {
+    if (!rows.length) return rows
+    if (!sortKey) return rows
+    return [...rows].sort((a, b) => {
       const aVal = (a as Record<string, unknown>)[sortKey]
       const bVal = (b as Record<string, unknown>)[sortKey]
       if (aVal == null) return 1
@@ -43,7 +46,7 @@ export function DataTable<T>({
       const cmp = String(aVal).localeCompare(String(bVal))
       return sortOrder === 'asc' ? cmp : -cmp
     })
-  }, [data, sortKey, sortOrder])
+  }, [rows, sortKey, sortOrder])
 
   const totalPages = Math.ceil(sorted.length / pageSize)
   const paginated = sorted.slice((page - 1) * pageSize, page * pageSize)

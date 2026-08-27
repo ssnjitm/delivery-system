@@ -98,18 +98,18 @@ dispatchRoutes.post(
   DispatchController.processQueue
 );
 
-// Admin - Configuration
+// Admin/Dispatch - Configuration
 dispatchRoutes.get(
   '/admin/config',
   authenticateToken,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.ADMIN, UserRole.DISPATCH),
   DispatchController.getDispatchConfig
 );
 
 dispatchRoutes.put(
   '/admin/config',
   authenticateToken,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.ADMIN, UserRole.DISPATCH),
   validateBody(UpdateConfigSchema),
   DispatchController.updateDispatchConfig
 );

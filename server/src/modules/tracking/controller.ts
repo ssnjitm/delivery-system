@@ -105,8 +105,8 @@ export class TrackingController {
    * GET /api/v1/tracking/drivers
    */
   static async getAllDriversLocation(req: Request, res: Response): Promise<void> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
-      throw new AppError(403, 'Admin access required.');
+    if (!req.user || ![UserRole.ADMIN, UserRole.DISPATCH].includes(req.user.role)) {
+      throw new AppError(403, 'Admin or dispatch access required.');
     }
 
     const { isOnline, limit } = req.query;

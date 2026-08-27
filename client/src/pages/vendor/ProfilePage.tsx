@@ -14,7 +14,11 @@ export default function VendorProfilePage() {
   const deleteDoc = useDeleteDocument()
 
   const handleSave = async (data: Parameters<typeof updateProfile.mutateAsync>[0]) => {
-    await updateProfile.mutateAsync(data)
+    const payload = {
+      phone: data.phone,
+      businessName: data.name,
+    }
+    await updateProfile.mutateAsync(payload as Parameters<typeof updateProfile.mutateAsync>[0])
   }
 
   const handleDelete = async (id: string) => {

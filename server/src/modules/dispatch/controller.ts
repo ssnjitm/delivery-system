@@ -142,8 +142,21 @@ export class DispatchController {
     });
   }
   
-  // Queue Management (Admin only)
-  
+  // Queue Management (Admin/Dispatch)
+
+  static async getPendingRequests(req: Request, res: Response): Promise<void> {
+    if (!req.user || ![UserRole.ADMIN, UserRole.DISPATCH].includes(req.user.role)) {
+      throw new AppError(403, 'Admin access required.');
+    }
+
+    const requests = await DispatchService.getPendingRequests();
+
+    res.status(200).json({
+      success: true,
+      data: requests,
+    });
+  }
+
   static async processQueue(req: Request, res: Response): Promise<void> {
     if (!req.user || req.user.role !== UserRole.ADMIN) {
       throw new AppError(403, 'Admin access required.');
@@ -158,7 +171,7 @@ export class DispatchController {
   }
   
   static async getDispatchConfig(req: Request, res: Response): Promise<void> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
+    if (!req.user || ![UserRole.ADMIN, UserRole.DISPATCH].includes(req.user.role)) {
       throw new AppError(403, 'Admin access required.');
     }
     
@@ -171,7 +184,7 @@ export class DispatchController {
   }
   
   static async updateDispatchConfig(req: Request, res: Response): Promise<void> {
-    if (!req.user || req.user.role !== UserRole.ADMIN) {
+    if (!req.user || ![UserRole.ADMIN, UserRole.DISPATCH].includes(req.user.role)) {
       throw new AppError(403, 'Admin access required.');
     }
     

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import { unwrapKeyed } from '@/hooks/reactQuery'
+import { unwrap, unwrapKeyed } from '@/hooks/reactQuery'
 import type { DispatchRequest, BatchGroup, DispatchConfig } from '@/types/dispatch'
 
 export function useFindDriver() {
@@ -71,7 +71,7 @@ export function useProcessRetryQueue() {
 export function usePendingDispatchRequests() {
   return useQuery({
     queryKey: ['dispatch', 'pending'],
-    queryFn: () => api.get('/dispatch/pending') as Promise<unknown> as Promise<DispatchRequest[]>,
+    queryFn: () => api.get('/dispatch/admin/pending').then(unwrap) as Promise<unknown> as Promise<DispatchRequest[]>,
     staleTime: 15_000,
   })
 }

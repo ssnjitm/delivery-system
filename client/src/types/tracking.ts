@@ -1,11 +1,14 @@
 export interface DriverLocation {
   driverId: string
-  lat: number
-  lng: number
-  status: 'ONLINE' | 'OFFLINE' | 'BUSY'
-  heading?: number
+  driverName?: string
+  phone?: string
+  location: {
+    coordinates: [number, number]
+    timestamp?: string
+  }
+  isOnline: boolean
   speed?: number
-  updatedAt: string
+  heading?: number
 }
 
 export interface TrackingSession {
@@ -17,6 +20,30 @@ export interface TrackingSession {
   route: Array<{ lat: number; lng: number }>
   estimatedArrival?: string
   estimatedDistance?: number
+}
+
+export interface OrderTracking {
+  orderId: string
+  orderStatus: string
+  driver: {
+    id: string
+    name: string
+    phone: string
+    location: {
+      coordinates: [number, number]
+      timestamp?: string
+    }
+    speed?: number
+    heading?: number
+  }
+  pickupLocation: { coordinates: [number, number]; address: string }
+  deliveryLocation: { coordinates: [number, number]; address: string }
+  estimatedArrivalTime?: string
+  estimatedTimeRemaining?: number
+  distanceToDestination?: number
+  status: 'PENDING' | 'ACTIVE' | 'NEAR_PICKUP' | 'NEAR_DELIVERY' | 'COMPLETED'
+  path: Array<{ coordinates: [number, number]; timestamp?: string }>
+  waypoints: Array<{ location: [number, number]; type: 'PICKUP' | 'DELIVERY'; reached: boolean }>
 }
 
 export interface Geofence {

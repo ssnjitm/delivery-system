@@ -68,11 +68,11 @@ trackingRoutes.get(
   TrackingController.trackOrder
 );
 
-// Admin - All drivers
+// Admin/Dispatch - All drivers
 trackingRoutes.get(
   '/drivers',
   authenticateToken,
-  requireRole(UserRole.ADMIN),
+  requireRole(UserRole.ADMIN, UserRole.DISPATCH),
   TrackingController.getAllDriversLocation
 );
 

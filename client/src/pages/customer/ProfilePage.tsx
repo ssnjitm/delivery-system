@@ -14,7 +14,12 @@ export default function CustomerProfilePage() {
   const deleteDoc = useDeleteDocument()
 
   const handleSave = async (data: Parameters<typeof updateProfile.mutateAsync>[0]) => {
-    await updateProfile.mutateAsync(data)
+    const payload = {
+      phone: data.phone,
+      fullName: data.name,
+      email: data.email,
+    }
+    await updateProfile.mutateAsync(payload as Parameters<typeof updateProfile.mutateAsync>[0])
   }
 
   const handleDelete = async (id: string) => {

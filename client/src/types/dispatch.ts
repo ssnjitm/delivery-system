@@ -1,14 +1,14 @@
 export interface DispatchRequest {
-  _id: string
-  order: string
-  driver?: string
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED'
+  id: string
+  orderId: string
+  status: 'PENDING' | 'SEARCHING' | 'ASSIGNED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED'
+  assignedDriver?: { id: string; name: string }
   distance?: number
   estimatedEarnings?: number
   score?: number
   expiresAt: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 

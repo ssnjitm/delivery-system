@@ -19,7 +19,11 @@ export default function DriverProfilePage() {
   const [isOnline, setIsOnline] = useState(false)
 
   const handleSave = async (data: Parameters<typeof updateProfile.mutateAsync>[0]) => {
-    await updateProfile.mutateAsync(data)
+    const payload = {
+      phone: data.phone,
+      fullName: data.name,
+    }
+    await updateProfile.mutateAsync(payload as Parameters<typeof updateProfile.mutateAsync>[0])
   }
 
   const handleDelete = async (id: string) => {
@@ -30,8 +34,12 @@ export default function DriverProfilePage() {
   const handleToggleStatus = async () => {
     setToggling(true)
     try {
-      const res = await api.post('/users/driver/toggle-status') as unknown as { isOnline: boolean }
-      setIsOnline(res.isOnline)
+      const target = !isOnline
+      const res = (await api.post('/users/driver/toggle-status', { isOnline: target })) as unknown as {
+        data?: { isOnline?: boolean }
+      }
+      const next = res?.data?.isOnline ?? target
+      setIsOnline(next)
     } finally {
       setToggling(false)
     }

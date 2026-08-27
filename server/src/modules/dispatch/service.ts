@@ -347,8 +347,7 @@ export class DispatchService {
 
   // Batch Optimization
 
-  static async suggestBatch(payload: IBatchSuggestionPayload): Promise<IBatchGroup | null> {
-    const {
+  static async suggestBatch(payload: IBatchSuggestionPayload): Promise<IBatchGroup | null> {    const {
       driverId,
       currentOrderId,
       maxOrders = this.config.batchMaxOrders,
@@ -587,6 +586,17 @@ export class DispatchService {
       console.log(`    Distance: ${Math.round(driver.distance)}m`);
       console.log(`    Score: ${driver.score}`);
     }
+  }
+
+  // List pending dispatch requests (Admin/Dispatch)
+  static async getPendingRequests(): Promise<IDispatchResponse[]> {
+    const requests = await DispatchRequestModel.find({
+      status: { $in: [DispatchStatus.PENDING, DispatchStatus.SEARCHING, DispatchStatus.ASSIGNED] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    return requests.map((request) => this.toDispatchResponse(request));
   }
 
   // Helper Methods

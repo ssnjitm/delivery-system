@@ -16,7 +16,7 @@ export function DispatchRequestCard({ request, onAccept, onReject, loading }: Di
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-mono text-muted-foreground">Request #{request._id.slice(0, 8)}</span>
+          <span className="text-sm font-mono text-muted-foreground">Request #{request.id.slice(0, 8)}</span>
           <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
             {request.status}
           </span>

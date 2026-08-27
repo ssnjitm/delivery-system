@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
+import { unwrapKeyed } from '@/hooks/reactQuery'
 import type { IUser } from '@/types/user'
 
 export function useProfile() {
   return useQuery({
     queryKey: ['profile'],
-    queryFn: () => api.get('/users/me') as Promise<unknown> as Promise<{ user: IUser }>,
+    queryFn: () => api.get('/users/me').then(unwrapKeyed('user')) as Promise<unknown> as Promise<{ user: IUser }>,
     staleTime: 30_000,
   })
 }
