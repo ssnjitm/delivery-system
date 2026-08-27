@@ -44,20 +44,23 @@ export function DriverSearchPanel({ onAssign }: DriverSearchPanelProps) {
           <p className="text-sm text-muted-foreground">No drivers found nearby</p>
         )}
 
-        {nearbyDrivers?.map((driver) => (
+        {nearbyDrivers?.map((driver) => {
+          const [lng, lat] = driver.location?.coordinates ?? [0, 0]
+          return (
           <div key={driver.driverId} className="flex items-center justify-between rounded-md border p-3">
             <div>
-              <p className="text-sm font-medium">Driver {driver.driverId.slice(0, 8)}</p>
+              <p className="text-sm font-medium">{driver.driverName || `Driver ${driver.driverId.slice(0, 8)}`}</p>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Navigation className="h-3 w-3" />
-                {driver.lat.toFixed(4)}, {driver.lng.toFixed(4)}
+                {lat.toFixed(4)}, {lng.toFixed(4)}
               </p>
             </div>
             <Button size="sm" onClick={() => onAssign(driver.driverId)}>
               Assign
             </Button>
           </div>
-        ))}
+          )
+        })}
       </CardContent>
     </Card>
   )

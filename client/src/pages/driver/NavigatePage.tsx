@@ -25,7 +25,7 @@ export default function NavigatePage() {
   useEffect(() => {
     if (latitude && longitude) {
       const interval = setInterval(() => {
-        updateLocation.mutate({ lat: latitude, lng: longitude })
+        updateLocation.mutate({ coordinates: [longitude, latitude] })
       }, 5000)
       return () => clearInterval(interval)
     }

@@ -10,7 +10,16 @@ interface DriverLocationMapProps {
 }
 
 export function DriverLocationMap({ driver, height = '400px', className }: DriverLocationMapProps) {
-  const position: [number, number] = [driver.lat, driver.lng]
+  if (!driver.location?.coordinates) {
+    return (
+      <div className={cn('flex items-center justify-center rounded-md border', className)} style={{ height }}>
+        <p className="text-sm text-muted-foreground">Driver location unavailable</p>
+      </div>
+    )
+  }
+
+  const [lng, lat] = driver.location.coordinates
+  const position: [number, number] = [lat, lng]
 
   return (
     <div className={cn('rounded-md overflow-hidden border', className)} style={{ height }}>
@@ -24,7 +33,7 @@ export function DriverLocationMap({ driver, height = '400px', className }: Drive
             <div className="text-sm">
               <p className="font-medium">Driver Location</p>
               <p className="text-muted-foreground">
-                {driver.lat.toFixed(4)}, {driver.lng.toFixed(4)}
+                {lat.toFixed(4)}, {lng.toFixed(4)}
               </p>
               {driver.speed && <p>Speed: {driver.speed.toFixed(1)} km/h</p>}
             </div>

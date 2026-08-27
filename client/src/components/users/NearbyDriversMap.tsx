@@ -18,7 +18,16 @@ export function NearbyDriversMap({ drivers, height = '400px', className }: Nearb
     )
   }
 
-  const center: [number, number] = [drivers[0].lat, drivers[0].lng]
+  const first = drivers.find((d) => d.location?.coordinates)
+  if (!drivers.length || !first) {
+    return (
+      <div className={cn('flex items-center justify-center rounded-md border', className)} style={{ height }}>
+        <p className="text-sm text-muted-foreground">No drivers nearby</p>
+      </div>
+    )
+  }
+
+  const center: [number, number] = [first.location.coordinates[1], first.location.coordinates[0]]
 
   return (
     <div className={cn('rounded-md overflow-hidden border', className)} style={{ height }}>
@@ -27,16 +36,23 @@ export function NearbyDriversMap({ drivers, height = '400px', className }: Nearb
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {drivers.map((driver) => (
-          <Marker key={driver.driverId} position={[driver.lat, driver.lng]}>
-            <Popup>
-              <div className="text-sm">
-                <p>Driver {driver.driverId.slice(0, 8)}</p>
-                {driver.status && <p className="text-muted-foreground">{driver.status}</p>}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {drivers.map((driver) => {
+          if (!driver.location?.coordinates) return null
+          return (
+            <Marker key={driver.driverId} position={[driver.location.coordinates[1], driver.location.coordinates[0]]}>
+              <Popup>
+                <div className="text-sm">
+                  <p>{driver.driverName || `Driver ${driver.driverId.slice(0, 8)}`}</p>
+                  {driver.isOnline ? (
+                    <p className="text-green-600">Online</p>
+                  ) : (
+                    <p className="text-muted-foreground">Offline</p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
     </div>
   )

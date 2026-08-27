@@ -44,11 +44,11 @@ export default function AvailableOrdersPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {requests.map((req) => (
             <DispatchRequestCard
-              key={req._id}
+              key={req.id}
               request={req}
-              onAccept={() => handleAccept(req._id)}
-              onReject={() => handleReject(req._id)}
-              loading={loadingId === req._id}
+              onAccept={() => handleAccept(req.id)}
+              onReject={() => handleReject(req.id)}
+              loading={loadingId === req.id}
             />
           ))}
         </div>

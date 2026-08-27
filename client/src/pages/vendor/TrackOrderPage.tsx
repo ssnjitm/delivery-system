@@ -40,12 +40,12 @@ export default function VendorTrackOrderPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>{trackingData?.estimatedArrival ? `ETA: ${new Date(trackingData.estimatedArrival).toLocaleTimeString()}` : 'Calculating ETA...'}</span>
+              <span>{trackingData?.estimatedArrivalTime ? `ETA: ${new Date(trackingData.estimatedArrivalTime).toLocaleTimeString()}` : 'Calculating ETA...'}</span>
             </div>
-            {trackingData?.estimatedDistance && (
+            {trackingData && trackingData.distanceToDestination != null && (
               <div className="flex items-center gap-2 text-sm">
                 <Navigation className="h-4 w-4 text-muted-foreground" />
-                <span>{trackingData.estimatedDistance.toFixed(1)} km</span>
+                <span>{(trackingData.distanceToDestination / 1000).toFixed(1)} km</span>
               </div>
             )}
             <div className="text-sm">

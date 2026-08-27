@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import { unwrap, unwrapKeyed, unwrapPaginated } from '@/hooks/reactQuery'
+import { unwrap, unwrapKeyed, unwrapPaginated, unwrapUsers } from '@/hooks/reactQuery'
 import type { DashboardStats, AuditLog, Dispute, ReportData } from '@/types/admin'
 import type { IUser, IVendor, IDriver, ICustomer, INormalUser } from '@/types/user'
 import type { PaginationParams, PaginatedResponse } from '@/types/api'
@@ -16,7 +16,7 @@ export function useDashboardStats() {
 export function useAdminUsers(params: PaginationParams & { search?: string; role?: string } = {}) {
   return useQuery({
     queryKey: ['admin', 'users', params],
-    queryFn: () => api.get('/admin/users', { params }).then(unwrapPaginated) as Promise<unknown> as Promise<PaginatedResponse<IUser>>,
+    queryFn: () => api.get('/admin/users', { params }).then(unwrapUsers) as Promise<unknown> as Promise<PaginatedResponse<IUser>>,
     staleTime: 30_000,
   })
 }

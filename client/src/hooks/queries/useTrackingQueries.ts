@@ -39,7 +39,14 @@ export function useDriverDailySummary(driverId: string) {
 export function useNearbyDrivers(params?: { lat?: number; lng?: number; radius?: number }) {
   return useQuery({
     queryKey: ['tracking', 'nearby', params],
-    queryFn: () => api.get('/tracking/nearby', { params }).then(unwrap) as Promise<unknown> as Promise<DriverLocation[]>,
+    queryFn: () =>
+      api.get('/tracking/nearby', {
+        params: {
+          latitude: params?.lat,
+          longitude: params?.lng,
+          radius: params?.radius,
+        },
+      }).then(unwrap) as Promise<unknown> as Promise<DriverLocation[]>,
     staleTime: 15_000,
   })
 }

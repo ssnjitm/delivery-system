@@ -32,7 +32,7 @@ export default function QueuePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {requests.map((req) => (
-            <DispatchRequestCard key={req._id} request={req} />
+            <DispatchRequestCard key={req.id} request={req} />
           ))}
         </div>
       )}

@@ -1,13 +1,13 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
-import type { DriverLocation } from '@/types/tracking'
+import type { TrackingDriver } from '@/types/tracking'
 import type { IOrder } from '@/types/order'
 import 'leaflet/dist/leaflet.css'
 
 interface OrderTrackingMapProps {
   order: IOrder
-  driverLocation?: DriverLocation | null
+  driverLocation?: TrackingDriver | null
   height?: string
   className?: string
 }
@@ -21,9 +21,13 @@ export function OrderTrackingMap({ order, driverLocation, height = '400px', clas
     (pickupPos[1] + deliveryPos[1]) / 2,
   ]
 
+  const driverPos: [number, number] | null = driverLocation?.location?.coordinates
+    ? [driverLocation.location.coordinates[1], driverLocation.location.coordinates[0]]
+    : null
+
   const routePoints: [number, number][] = []
-  if (driverLocation) {
-    routePoints.push([driverLocation.lat, driverLocation.lng])
+  if (driverPos) {
+    routePoints.push(driverPos)
   }
   routePoints.push(deliveryPos)
 
@@ -51,12 +55,12 @@ export function OrderTrackingMap({ order, driverLocation, height = '400px', clas
             </div>
           </Popup>
         </Marker>
-        {driverLocation && (
-          <Marker position={[driverLocation.lat, driverLocation.lng]}>
+        {driverPos && (
+          <Marker position={driverPos}>
             <Popup>
               <div className="text-sm">
                 <p className="font-medium">Driver</p>
-                {driverLocation.speed && <p>Speed: {driverLocation.speed.toFixed(1)} km/h</p>}
+                {driverLocation!.speed && <p>Speed: {driverLocation!.speed.toFixed(1)} km/h</p>}
               </div>
             </Popup>
           </Marker>

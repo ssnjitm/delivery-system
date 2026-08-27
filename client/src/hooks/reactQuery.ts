@@ -27,3 +27,16 @@ export const unwrapPaginated = <T>(envelope: unknown): PaginatedResponse<T> => {
     pagination: e.meta || { total: 0, page: 1, limit: 20, totalPages: 1 },
   }
 }
+
+export const unwrapUsers = <T>(envelope: unknown): PaginatedResponse<T> => {
+  const e = envelope as {
+    success: boolean
+    data: { drivers: T[]; limit: number; page: number; total: number }
+  }
+  const { drivers = [], limit = 20, page = 1, total = 0 } = e.data || {}
+  return {
+    success: e.success,
+    data: drivers,
+    pagination: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+  }
+}

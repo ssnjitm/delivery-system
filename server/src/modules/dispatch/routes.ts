@@ -90,6 +90,14 @@ dispatchRoutes.get(
   DispatchController.getDispatchStatus
 );
 
+// Admin/Dispatch - Pending dispatch requests
+dispatchRoutes.get(
+  '/admin/pending',
+  authenticateToken,
+  requireRole(UserRole.ADMIN, UserRole.DISPATCH),
+  DispatchController.getPendingRequests
+);
+
 // Admin - Queue management
 dispatchRoutes.post(
   '/admin/process-queue',

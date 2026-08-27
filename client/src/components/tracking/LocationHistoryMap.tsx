@@ -18,7 +18,17 @@ export function LocationHistoryMap({ locations, height = '400px', className }: L
     )
   }
 
-  const points: [number, number][] = locations.map((l) => [l.lat, l.lng])
+  const points: [number, number][] = locations
+    .map((l) => l.location?.coordinates as [number, number] | undefined)
+    .filter((c): c is [number, number] => Boolean(c))
+    .map((c) => [c[1], c[0]])
+  if (!points.length) {
+    return (
+      <div className={cn('flex items-center justify-center rounded-md border', className)} style={{ height }}>
+        <p className="text-sm text-muted-foreground">No location history available</p>
+      </div>
+    )
+  }
   const center = points[0]
   const lastPoint = points[points.length - 1]
 
