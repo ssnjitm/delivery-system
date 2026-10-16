@@ -1,6 +1,5 @@
 import { Types } from 'mongoose';
 import { UserRole } from '@/types/enums.js';
-import { DocumentStatus } from '../documents/types.js';
 
 // Admin Action Types
 export enum AdminActionType {

@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRegisterMutation } from '@/hooks/queries/useAuthQueries'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FormItem, FormMessage } from '@/components/ui/form'
+import { DocumentFileUpload } from '@/components/documents/DocumentFileUpload'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -18,7 +19,7 @@ const registerSchema = z.object({
   address: z.string().min(4, 'Address is required'),
   longitude: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= -180 && Number(v) <= 180, 'Valid longitude required'),
   latitude: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= -90 && Number(v) <= 90, 'Valid latitude required'),
-  citizenshipDocUrl: z.string().url('Enter a valid document URL'),
+  citizenshipDocUrl: z.string().min(1, 'Please upload your citizenship document'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -35,6 +36,7 @@ export function RegisterVendorForm() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -102,11 +104,19 @@ export function RegisterVendorForm() {
         <Input id="phone" placeholder="+9779800000000" {...register('phone')} />
         {errors.phone && <FormMessage>{errors.phone.message}</FormMessage>}
       </FormItem>
-      <FormItem>
-        <Label htmlFor="citizenshipDocUrl">Citizenship Document URL</Label>
-        <Input id="citizenshipDocUrl" placeholder="https://cdn.example.com/docs/citizenship.jpg" {...register('citizenshipDocUrl')} />
-        {errors.citizenshipDocUrl && <FormMessage>{errors.citizenshipDocUrl.message}</FormMessage>}
-      </FormItem>
+      <Controller
+        control={control}
+        name="citizenshipDocUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Citizenship Document"
+            type="citizenship"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.citizenshipDocUrl?.message}
+          />
+        )}
+      />
       <FormItem>
         <Label htmlFor="password">Password</Label>
         <Input id="password" type="password" placeholder="••••••••" {...register('password')} />

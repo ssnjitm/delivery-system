@@ -67,14 +67,8 @@ export const DriverSignupPayload = registry.register(
       .url()
       .openapi({ example: 'https://cdn.example.com/docs/license.jpg' }),
     bikeModel: z.string().min(1).openapi({ example: 'Honda CB 150R' }),
-    bluebookUrl: z
-      .string()
-      .url()
-      .openapi({ example: 'https://cdn.example.com/docs/bluebook.jpg' }),
-    selfieUrl: z
-      .string()
-      .url()
-      .openapi({ example: 'https://cdn.example.com/photos/selfie.jpg' }),
+    bluebookUrl: z.string().url().openapi({ example: 'https://cdn.example.com/docs/bluebook.jpg' }),
+    selfieUrl: z.string().url().openapi({ example: 'https://cdn.example.com/photos/selfie.jpg' }),
     emergencyContact: z.object({
       name: z.string().min(2).openapi({ example: 'Bishnu Tamang' }),
       phone: cleanPhone,
@@ -87,14 +81,9 @@ export const ConsumerSignupPayload = registry.register(
   z.object({
     phone: cleanPhone,
     password: clearPassword,
-    role: z
-      .enum([UserRole.CUSTOMER, UserRole.NORMAL_USER])
-      .openapi({ example: UserRole.CUSTOMER }),
+    role: z.enum([UserRole.CUSTOMER, UserRole.NORMAL_USER]).openapi({ example: UserRole.CUSTOMER }),
     fullName: z.string().min(2).openapi({ example: 'Anjali Shrestha' }),
-    selfieUrl: z
-      .string()
-      .url()
-      .openapi({ example: 'https://cdn.example.com/photos/selfie.jpg' }),
+    selfieUrl: z.string().url().openapi({ example: 'https://cdn.example.com/photos/selfie.jpg' }),
     email: z.string().email().optional().openapi({ example: 'anjali@example.com' }),
     defaultDeliveryAddress: z.string().optional().openapi({ example: 'Lazimpat, Kathmandu' }),
   }),
@@ -115,9 +104,7 @@ export const RegisterSuccessResponse = registry.register(
   'RegisterSuccessResponse',
   z.object({
     success: z.literal(true),
-    message: z
-      .string()
-      .openapi({ example: 'Registration profile saved successfully.' }),
+    message: z.string().openapi({ example: 'Registration profile saved successfully.' }),
     data: z.object({
       userId: z.string().openapi({ example: '64f1a2b3c4d5e6f7a8b9c0d1' }),
       role: z.nativeEnum(UserRole),
@@ -130,9 +117,7 @@ export const LoginSuccessResponse = registry.register(
   'LoginSuccessResponse',
   z.object({
     success: z.literal(true),
-    message: z
-      .string()
-      .openapi({ example: 'Authentication verification completed successfully.' }),
+    message: z.string().openapi({ example: 'Authentication verification completed successfully.' }),
     data: z.object({
       accessToken: z.string().openapi({ example: 'eyJhbGci...' }),
       refreshToken: z.string().openapi({ example: 'eyJhbGci...' }),

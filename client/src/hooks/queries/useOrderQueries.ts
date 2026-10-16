@@ -53,7 +53,7 @@ export function useUpdateOrderStatus() {
 export function useCancelOrder() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.post(`/orders/${id}/cancel`),
+    mutationFn: (id: string) => api.post(`/orders/${id}/cancel`, { reason: 'Cancelled by user' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] })
     },

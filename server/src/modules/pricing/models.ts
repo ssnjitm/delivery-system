@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import {
   IPricingRule,
   IPriceHistory,
@@ -41,14 +41,18 @@ const PricingRuleSchema = new Schema<IPricingRule>(
       max: 1000,
     },
     conditions: {
-      packageTypes: [{
-        type: String,
-        enum: Object.values(PackageType),
-      }],
-      peakHourTypes: [{
-        type: String,
-        enum: Object.values(PeakHourType),
-      }],
+      packageTypes: [
+        {
+          type: String,
+          enum: Object.values(PackageType),
+        },
+      ],
+      peakHourTypes: [
+        {
+          type: String,
+          enum: Object.values(PeakHourType),
+        },
+      ],
       areas: [String],
       distanceRange: {
         min: Number,
@@ -80,10 +84,12 @@ const PricingRuleSchema = new Schema<IPricingRule>(
         min: 0,
       },
     },
-    appliesTo: [{
-      type: String,
-      enum: ['VENDOR', 'CUSTOMER', 'DRIVER', 'ALL'],
-    }],
+    appliesTo: [
+      {
+        type: String,
+        enum: ['VENDOR', 'CUSTOMER', 'DRIVER', 'ALL'],
+      },
+    ],
     metadata: {
       type: Schema.Types.Mixed,
       default: {},
@@ -104,7 +110,7 @@ const PricingRuleSchema = new Schema<IPricingRule>(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Indexes
@@ -131,7 +137,7 @@ const PriceHistorySchema = new Schema<IPriceHistory>(
         amount: Number,
       },
       packageSurcharge: {
-        type: String,
+        type: { type: String },
         amount: Number,
       },
       peakHourSurcharge: {
@@ -148,25 +154,29 @@ const PriceHistorySchema = new Schema<IPriceHistory>(
       minimumFee: Number,
       maximumFee: Number,
       total: Number,
-      appliedRules: [{
-        ruleId: Schema.Types.ObjectId,
-        name: String,
-        type: String,
-        amount: Number,
-      }],
+      appliedRules: [
+        {
+          ruleId: Schema.Types.ObjectId,
+          name: String,
+          type: { type: String },
+          amount: Number,
+        },
+      ],
     },
-    appliedRules: [{
-      ruleId: {
-        type: Schema.Types.ObjectId,
-        ref: 'PricingRule',
+    appliedRules: [
+      {
+        ruleId: {
+          type: Schema.Types.ObjectId,
+          ref: 'PricingRule',
+        },
+        name: String,
+        type: {
+          type: String,
+          enum: Object.values(PricingRuleType),
+        },
+        amount: Number,
       },
-      name: String,
-      type: {
-        type: String,
-        enum: Object.values(PricingRuleType),
-      },
-      amount: Number,
-    }],
+    ],
     total: {
       type: Number,
       required: true,
@@ -183,7 +193,7 @@ const PriceHistorySchema = new Schema<IPriceHistory>(
         return ret;
       },
     },
-  }
+  },
 );
 
 PriceHistorySchema.index({ orderId: 1, createdAt: -1 });
@@ -243,7 +253,7 @@ const AreaPricingSchema = new Schema<IAreaPricing>(
         return ret;
       },
     },
-  }
+  },
 );
 
 AreaPricingSchema.index({ area: 1, city: 1, type: 1 }, { unique: true });

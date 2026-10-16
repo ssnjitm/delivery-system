@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRegisterMutation } from '@/hooks/queries/useAuthQueries'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FormItem, FormMessage } from '@/components/ui/form'
+import { DocumentFileUpload } from '@/components/documents/DocumentFileUpload'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,10 +16,10 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   fullName: z.string().min(2, 'Full name is required'),
   bikeModel: z.string().min(1, 'Bike model is required'),
-  citizenshipDocUrl: z.string().url('Enter a valid URL'),
-  drivingLicenseUrl: z.string().url('Enter a valid URL'),
-  bluebookUrl: z.string().url('Enter a valid URL'),
-  selfieUrl: z.string().url('Enter a valid URL'),
+  citizenshipDocUrl: z.string().min(1, 'Please upload your citizenship document'),
+  drivingLicenseUrl: z.string().min(1, 'Please upload your driving license'),
+  bluebookUrl: z.string().min(1, 'Please upload your bluebook'),
+  selfieUrl: z.string().min(1, 'Please upload a selfie'),
   emergencyName: z.string().min(2, 'Emergency contact name is required'),
   emergencyPhone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Enter valid emergency phone'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -37,6 +38,7 @@ export function RegisterDriverForm() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -87,26 +89,58 @@ export function RegisterDriverForm() {
         <Input id="bikeModel" placeholder="Honda CB 150R" {...register('bikeModel')} />
         {errors.bikeModel && <FormMessage>{errors.bikeModel.message}</FormMessage>}
       </FormItem>
-      <FormItem>
-        <Label htmlFor="citizenshipDocUrl">Citizenship Document URL</Label>
-        <Input id="citizenshipDocUrl" placeholder="https://cdn.example.com/docs/citizenship.jpg" {...register('citizenshipDocUrl')} />
-        {errors.citizenshipDocUrl && <FormMessage>{errors.citizenshipDocUrl.message}</FormMessage>}
-      </FormItem>
-      <FormItem>
-        <Label htmlFor="drivingLicenseUrl">Driving License URL</Label>
-        <Input id="drivingLicenseUrl" placeholder="https://cdn.example.com/docs/license.jpg" {...register('drivingLicenseUrl')} />
-        {errors.drivingLicenseUrl && <FormMessage>{errors.drivingLicenseUrl.message}</FormMessage>}
-      </FormItem>
-      <FormItem>
-        <Label htmlFor="bluebookUrl">Bluebook URL</Label>
-        <Input id="bluebookUrl" placeholder="https://cdn.example.com/docs/bluebook.jpg" {...register('bluebookUrl')} />
-        {errors.bluebookUrl && <FormMessage>{errors.bluebookUrl.message}</FormMessage>}
-      </FormItem>
-      <FormItem>
-        <Label htmlFor="selfieUrl">Selfie URL</Label>
-        <Input id="selfieUrl" placeholder="https://cdn.example.com/photos/selfie.jpg" {...register('selfieUrl')} />
-        {errors.selfieUrl && <FormMessage>{errors.selfieUrl.message}</FormMessage>}
-      </FormItem>
+      <Controller
+        control={control}
+        name="citizenshipDocUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Citizenship Document"
+            type="citizenship"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.citizenshipDocUrl?.message}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="drivingLicenseUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Driving License"
+            type="driving_license"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.drivingLicenseUrl?.message}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="bluebookUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Bluebook"
+            type="bluebook"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.bluebookUrl?.message}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="selfieUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Selfie"
+            type="selfie"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.selfieUrl?.message}
+          />
+        )}
+      />
       <div className="grid grid-cols-2 gap-4">
         <FormItem>
           <Label htmlFor="emergencyName">Emergency Contact Name</Label>

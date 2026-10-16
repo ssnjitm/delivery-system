@@ -1,10 +1,9 @@
 import { OrderModel } from '../model.js';
 import { OrderStatus } from '@/types/enums.js';
-import { DispatchStatus } from '@/modules/dispatch/types.js'; 
+import { DispatchStatus } from '@/modules/dispatch/types.js';
 import { DispatchRequestModel } from '@/modules/dispatch/model.js';
 
 export class DispatchStatusService {
-  
   /**
    * Get dispatch status for an order
    */
@@ -24,13 +23,13 @@ export class DispatchStatusService {
       DispatchRequestModel.findOne({
         orderId: orderId,
         // 🌟 Replaced raw string array with valid Enum values
-        status: { 
+        status: {
           $in: [
-            DispatchStatus.PENDING, 
-            DispatchStatus.SEARCHING, 
-            DispatchStatus.ASSIGNED, 
-            DispatchStatus.ACCEPTED
-          ] 
+            DispatchStatus.PENDING,
+            DispatchStatus.SEARCHING,
+            DispatchStatus.ASSIGNED,
+            DispatchStatus.ACCEPTED,
+          ],
         },
       }).sort({ createdAt: -1 }),
     ]);
@@ -42,8 +41,8 @@ export class DispatchStatusService {
     return {
       orderStatus: order.status,
       dispatchStatus: dispatchRequest?.status || null,
-      assignedDriver: dispatchRequest?.assignedDriverId 
-        ? dispatchRequest.assignedDriverId.toString() 
+      assignedDriver: dispatchRequest?.assignedDriverId
+        ? dispatchRequest.assignedDriverId.toString()
         : null,
       estimatedEarnings: dispatchRequest?.estimatedEarnings || null,
       expiresAt: dispatchRequest?.expiresAt || null,
@@ -53,7 +52,7 @@ export class DispatchStatusService {
       attemptCount: dispatchRequest?.attemptCount || null,
     };
   }
-  
+
   /**
    * Check if order is in dispatch process
    */
@@ -61,16 +60,13 @@ export class DispatchStatusService {
     const count = await DispatchRequestModel.countDocuments({
       orderId: orderId,
       // 🌟 Replaced raw string array with valid Enum values
-      status: { 
-        $in: [
-          DispatchStatus.PENDING, 
-          DispatchStatus.SEARCHING
-        ] 
+      status: {
+        $in: [DispatchStatus.PENDING, DispatchStatus.SEARCHING],
       },
     });
     return count > 0;
   }
-  
+
   /**
    * Get all active dispatch requests for an order
    */
@@ -78,14 +74,16 @@ export class DispatchStatusService {
     return DispatchRequestModel.find({
       orderId: orderId,
       // 🌟 Replaced raw string array with valid Enum values
-      status: { 
+      status: {
         $in: [
-          DispatchStatus.PENDING, 
-          DispatchStatus.SEARCHING, 
-          DispatchStatus.ASSIGNED, 
-          DispatchStatus.ACCEPTED
-        ] 
+          DispatchStatus.PENDING,
+          DispatchStatus.SEARCHING,
+          DispatchStatus.ASSIGNED,
+          DispatchStatus.ACCEPTED,
+        ],
       },
-    }).sort({ createdAt: -1 }).lean();
+    })
+      .sort({ createdAt: -1 })
+      .lean();
   }
 }

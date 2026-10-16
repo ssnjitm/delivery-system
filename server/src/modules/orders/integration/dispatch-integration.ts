@@ -7,7 +7,6 @@ import { Types } from 'mongoose';
  * This is called by the Dispatch module when drivers accept/reject orders
  */
 export class DispatchIntegration {
-  
   /**
    * Called when a driver accepts an order through dispatch
    */
@@ -20,7 +19,7 @@ export class DispatchIntegration {
     // Update order with driver
     const { DriverModel } = await import('../../users/model.js');
     const driver = await DriverModel.findById(driverId);
-    
+
     if (driver) {
       order.driverId = new Types.ObjectId(driverId);
       order.driverName = driver.fullName;
@@ -32,44 +31,50 @@ export class DispatchIntegration {
         note: `Driver ${driver.fullName} accepted through dispatch`,
         updatedBy: new Types.ObjectId(driverId),
       });
-      
+
       await order.save();
       console.log(`✅ Order ${order.orderId} assigned to driver ${driver.fullName} via dispatch`);
     }
   }
-  
+
   /**
    * Called when a driver rejects an order through dispatch
    */
-  static async handleDriverRejected(orderId: string, driverId: string, reason?: string): Promise<void> {
+  static async handleDriverRejected(
+    orderId: string,
+    driverId: string,
+    reason?: string,
+  ): Promise<void> {
     // Just log for now - dispatch will find another driver
-    console.log(`⚠️ Driver ${driverId} rejected order ${orderId}: ${reason || 'No reason provided'}`);
-    
+    console.log(
+      `⚠️ Driver ${driverId} rejected order ${orderId}: ${reason || 'No reason provided'}`,
+    );
+
     // Could track rejection metrics for driver performance
     // await DriverRejectionModel.create({ orderId, driverId, reason });
   }
-  
+
   /**
    * Called when dispatch fails to find a driver
    */
   static async handleDispatchFailed(orderId: string, reason: string): Promise<void> {
     console.log(`❌ Dispatch failed for order ${orderId}: ${reason}`);
-    
+
     // Could send notification to admin or vendor
     // await NotificationService.notifyVendorNoDriver(orderId);
     // await NotificationService.notifyAdminDispatchFailed(orderId, reason);
   }
-  
+
   /**
    * Called when dispatch expires (no driver found within timeout)
    */
   static async handleDispatchExpired(orderId: string): Promise<void> {
     console.log(`⏰ Dispatch expired for order ${orderId}`);
-    
+
     // Could add to retry queue or notify vendor
     // await NotificationService.notifyVendorDispatchExpired(orderId);
   }
-  
+
   /**
    * Called when a driver is assigned to an order (manual or automatic)
    */

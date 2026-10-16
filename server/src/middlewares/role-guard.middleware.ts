@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from './auth.js';
 import { UserRole } from '@/types/enums.js';
 
-
 export const requireRole = (...allowedRoles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -14,5 +13,5 @@ export const requireRole = (...allowedRoles: UserRole[]) => {
     }
 
     next();
-  }
+  };
 };

@@ -49,7 +49,7 @@ pricingRoutes.post(
   '/calculate',
   authenticateToken,
   validateBody(CalculatePriceSchema),
-  PricingController.calculatePrice
+  PricingController.calculatePrice,
 );
 
 // ============================================
@@ -60,21 +60,21 @@ pricingRoutes.get(
   '/admin/config',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  PricingController.getConfig
+  PricingController.getConfig,
 );
 
 pricingRoutes.put(
   '/admin/config',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  PricingController.updateConfig
+  PricingController.updateConfig,
 );
 
 pricingRoutes.get(
   '/admin/areas',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  PricingController.getAllAreaPricing
+  PricingController.getAllAreaPricing,
 );
 
 pricingRoutes.post(
@@ -82,7 +82,7 @@ pricingRoutes.post(
   authenticateToken,
   requireRole(UserRole.ADMIN),
   validateBody(CreateAreaPricingSchema),
-  PricingController.createAreaPricing
+  PricingController.createAreaPricing,
 );
 
 pricingRoutes.put(
@@ -90,7 +90,7 @@ pricingRoutes.put(
   authenticateToken,
   requireRole(UserRole.ADMIN),
   validateBody(CreateAreaPricingSchema.partial()),
-  PricingController.updateAreaPricing
+  PricingController.updateAreaPricing,
 );
 
 // ============================================

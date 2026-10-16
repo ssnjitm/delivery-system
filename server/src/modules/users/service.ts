@@ -1,13 +1,7 @@
 import { Types } from 'mongoose';
 import { AppError } from '@/middlewares/auth.js';
 import { UserRole } from '@/types/enums.js';
-import {
-  UserModel,
-  VendorModel,
-  DriverModel,
-  CustomerModel,
-  NormalUserModel,
-} from './model.js';
+import { UserModel, VendorModel, DriverModel, CustomerModel, NormalUserModel } from './model.js';
 import {
   IUser,
   IVendorUser,
@@ -49,10 +43,7 @@ export class UserService {
   /**
    * Update user profile (role-agnostic fields)
    */
-  static async updateProfile(
-    userId: string,
-    updateData: IUpdateUserProfile
-  ): Promise<IUser> {
+  static async updateProfile(userId: string, updateData: IUpdateUserProfile): Promise<IUser> {
     const userModel = await this.getUserModelById(userId);
     if (!userModel) {
       throw new AppError(404, 'User not found.');
@@ -80,15 +71,14 @@ export class UserService {
   /**
    * Deactivate user account (soft delete)
    */
-  static async deactivateUser(userId: string,reason?:string): Promise<void> {
+  static async deactivateUser(userId: string, reason?: string): Promise<void> {
     const user = await UserModel.findByIdAndUpdate(
       userId,
-      { 
+      {
         isActive: false,
-        deactivationReason: reason || 'No reason provided'
-       },
-      { new: true }
-      
+        deactivationReason: reason || 'No reason provided',
+      },
+      { new: true },
     );
     if (!user) {
       throw new AppError(404, 'User not found.');
@@ -99,11 +89,7 @@ export class UserService {
    * Reactivate user account
    */
   static async reactivateUser(userId: string): Promise<void> {
-    const user = await UserModel.findByIdAndUpdate(
-      userId,
-      { isActive: true },
-      { new: true }
-    );
+    const user = await UserModel.findByIdAndUpdate(userId, { isActive: true }, { new: true });
     if (!user) {
       throw new AppError(404, 'User not found.');
     }
@@ -238,7 +224,7 @@ export class UserService {
    */
   static async updateDriverLocation(
     driverId: string,
-    coordinates: [number, number]
+    coordinates: [number, number],
   ): Promise<void> {
     const driver = await DriverModel.findById(driverId);
     if (!driver) {

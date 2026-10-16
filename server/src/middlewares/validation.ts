@@ -14,12 +14,12 @@ export const validateBody = (schema: ZodType) => {
           message: 'Payload formatting structure failed constraints processing verification.',
           errors: error.issues.map((issue) => ({
             field: issue.path.join('.'),
-            message: issue.message
-          }))
+            message: issue.message,
+          })),
         });
-        return; 
+        return;
       }
-      
+
       // Pass unexpected runtime errors to your global Express error handler
       next(error);
     }

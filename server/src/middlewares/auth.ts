@@ -3,18 +3,11 @@ import { ITokenPayload } from '@/types/index.js';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: ITokenPayload;
-    }
-  }
-}
-
-
 export class AppError extends Error {
-  constructor(public statusCode: number, message: string) {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -32,7 +25,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     const decoded = jwt.verify(token, env.JWT_SECRET) as ITokenPayload;
     req.user = decoded;
     next();
-  } catch (err) {
+  } catch {
     throw new AppError(403, 'Invalid or expired secure session token.');
   }
 };

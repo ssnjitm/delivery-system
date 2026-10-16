@@ -59,7 +59,7 @@ export class UserController {
    * Update driver's live location
    * POST /api/v1/users/driver/location
    */
-  static async updateDriverLocation(req: Request, res: Response): Promise<void> {
+  static async updateDriverLocation(req: Request, _res: Response): Promise<void> {
     if (!req.user) {
       throw new AppError(401, 'Authentication required.');
     }

@@ -15,7 +15,6 @@ export enum PricingRuleType {
   SPECIAL_HANDLING = 'SPECIAL_HANDLING',
 }
 
-
 export enum PricingRuleStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
@@ -23,11 +22,11 @@ export enum PricingRuleStatus {
 }
 
 export enum PeakHourType {
-  MORNING_PEAK = 'MORNING_PEAK',     // 7-10 AM
-  EVENING_PEAK = 'EVENING_PEAK',     // 5-8 PM
-  WEEKEND = 'WEEKEND',               // Saturday-Sunday
-  HOLIDAY = 'HOLIDAY',               // Public holidays
-  NIGHT = 'NIGHT',                   // 10 PM - 6 AM
+  MORNING_PEAK = 'MORNING_PEAK', // 7-10 AM
+  EVENING_PEAK = 'EVENING_PEAK', // 5-8 PM
+  WEEKEND = 'WEEKEND', // Saturday-Sunday
+  HOLIDAY = 'HOLIDAY', // Public holidays
+  NIGHT = 'NIGHT', // 10 PM - 6 AM
 }
 
 export interface IPricingRule {

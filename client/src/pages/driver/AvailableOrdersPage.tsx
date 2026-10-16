@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAcceptDispatch, useRejectDispatch, usePendingDispatchRequests } from '@/hooks/queries/useDispatchQueries'
+import { useAcceptDispatch, useRejectDispatch, useDriverPendingDispatchRequests } from '@/hooks/queries/useDispatchQueries'
 import { DispatchRequestCard } from '@/components/dispatch/DispatchRequestCard'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function AvailableOrdersPage() {
   const navigate = useNavigate()
-  const { data: requests, isLoading, error, refetch } = usePendingDispatchRequests()
+  const { data: requests, isLoading, error, refetch } = useDriverPendingDispatchRequests()
   const acceptDispatch = useAcceptDispatch()
   const rejectDispatch = useRejectDispatch()
   const [loadingId, setLoadingId] = useState<string | null>(null)

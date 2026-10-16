@@ -1,6 +1,5 @@
 import { Types } from 'mongoose';
-import { AppError } from '@/middlewares/auth.js';
-import { PackageType, OrderStatus } from '@/types/enums.js';
+import { PackageType } from '@/types/enums.js';
 
 import {
   IPriceRequest,
@@ -52,13 +51,18 @@ export class PricingService {
     // 1. Calculate distance between pickup and delivery
     const distanceMatrix = await this.calculateDistance(
       pickupLocation.coordinates,
-      deliveryLocation.coordinates
+      deliveryLocation.coordinates,
     );
 
     const distanceKm = distanceMatrix.distance.value / 1000;
 
     // 2. Get active pricing rules
-    const rules = await this.getActiveRules(packageType, isPeakHour, pickupLocation.area, deliveryLocation.area);
+    const rules = await this.getActiveRules(
+      packageType,
+      isPeakHour,
+      pickupLocation.area,
+      deliveryLocation.area,
+    );
 
     // 3. Calculate price breakdown
     const breakdown = await this.calculateBreakdown({
@@ -77,18 +81,7 @@ export class PricingService {
     // 4. Apply min/max constraints
     const total = this.applyConstraints(breakdown);
 
-    // 5. Save price history
-    const priceHistory = new PriceHistoryModel({
-      priceBreakdown: breakdown,
-      appliedRules: breakdown.appliedRules.map((rule) => ({
-        ruleId: new Types.ObjectId(rule.ruleId),
-        name: rule.name,
-        type: rule.type,
-        amount: rule.amount,
-      })),
-      total,
-    });
-    await priceHistory.save();
+    // Persistence is handled by savePriceHistory(orderId, ...) once the order exists.
 
     return {
       breakdown,
@@ -118,12 +111,10 @@ export class PricingService {
     const {
       distanceKm,
       packageType,
-      packageWeight,
       isPeakHour,
       scheduledTime,
       pickupArea,
       deliveryArea,
-      customerType,
       specialHandling,
       rules,
     } = params;
@@ -148,14 +139,19 @@ export class PricingService {
     const specialHandlingFee = specialHandling ? this.config.specialHandlingFee : 0;
 
     // Calculate total
-    let total = basePrice + distanceAmount + packageSurcharge.amount +
-      peakHourResult.amount + areaSurcharge.total + specialHandlingFee;
+    const total =
+      basePrice +
+      distanceAmount +
+      packageSurcharge.amount +
+      peakHourResult.amount +
+      areaSurcharge.total +
+      specialHandlingFee;
 
     // Track applied rules
     const appliedRules = [];
 
     // Base price rule
-    const baseRule = rules.find(r => r.type === PricingRuleType.BASE_PRICE);
+    const baseRule = rules.find((r) => r.type === PricingRuleType.BASE_PRICE);
     if (baseRule) {
       appliedRules.push({
         ruleId: baseRule._id.toString(),
@@ -166,7 +162,7 @@ export class PricingService {
     }
 
     // Per km rule
-    const kmRule = rules.find(r => r.type === PricingRuleType.PER_KM_RATE);
+    const kmRule = rules.find((r) => r.type === PricingRuleType.PER_KM_RATE);
     if (kmRule) {
       appliedRules.push({
         ruleId: kmRule._id.toString(),
@@ -177,7 +173,7 @@ export class PricingService {
     }
 
     // Package surcharge rule
-    const packageRule = rules.find(r => r.type === PricingRuleType.PACKAGE_TYPE_SURCHARGE);
+    const packageRule = rules.find((r) => r.type === PricingRuleType.PACKAGE_TYPE_SURCHARGE);
     if (packageRule) {
       appliedRules.push({
         ruleId: packageRule._id.toString(),
@@ -188,7 +184,7 @@ export class PricingService {
     }
 
     // Peak hour rule
-    const peakRule = rules.find(r => r.type === PricingRuleType.PEAK_HOUR_SURCHARGE);
+    const peakRule = rules.find((r) => r.type === PricingRuleType.PEAK_HOUR_SURCHARGE);
     if (peakRule && peakHourResult.isPeak) {
       appliedRules.push({
         ruleId: peakRule._id.toString(),
@@ -200,7 +196,7 @@ export class PricingService {
 
     // Area surcharge rules
     if (areaSurcharge.pickup > 0 || areaSurcharge.delivery > 0) {
-      const areaRules = rules.filter(r => r.type === PricingRuleType.AREA_SURCHARGE);
+      const areaRules = rules.filter((r) => r.type === PricingRuleType.AREA_SURCHARGE);
       for (const rule of areaRules) {
         appliedRules.push({
           ruleId: rule._id.toString(),
@@ -239,7 +235,7 @@ export class PricingService {
   // Rule-Based Calculations
 
   private static getBasePrice(rules: IPricingRule[]): number {
-    const baseRule = rules.find(r => r.type === PricingRuleType.BASE_PRICE);
+    const baseRule = rules.find((r) => r.type === PricingRuleType.BASE_PRICE);
     if (baseRule) {
       return baseRule.value.amount;
     }
@@ -248,11 +244,12 @@ export class PricingService {
 
   private static getPerKmRate(rules: IPricingRule[], distanceKm: number): number {
     // Check distance bracket rules first
-    const bracketRule = rules.find(r => 
-      r.type === PricingRuleType.DISTANCE_BRACKET &&
-      r.conditions.distanceRange &&
-      distanceKm >= r.conditions.distanceRange.min &&
-      distanceKm <= r.conditions.distanceRange.max
+    const bracketRule = rules.find(
+      (r) =>
+        r.type === PricingRuleType.DISTANCE_BRACKET &&
+        r.conditions.distanceRange &&
+        distanceKm >= r.conditions.distanceRange.min &&
+        distanceKm <= r.conditions.distanceRange.max,
     );
 
     if (bracketRule) {
@@ -260,7 +257,7 @@ export class PricingService {
     }
 
     // Check standard per km rule
-    const kmRule = rules.find(r => r.type === PricingRuleType.PER_KM_RATE);
+    const kmRule = rules.find((r) => r.type === PricingRuleType.PER_KM_RATE);
     if (kmRule) {
       return kmRule.value.amount;
     }
@@ -277,11 +274,12 @@ export class PricingService {
 
   private static getPackageSurcharge(
     rules: IPricingRule[],
-    packageType: PackageType
+    packageType: PackageType,
   ): { amount: number } {
-    const packageRule = rules.find(r => 
-      r.type === PricingRuleType.PACKAGE_TYPE_SURCHARGE &&
-      r.conditions.packageTypes?.includes(packageType)
+    const packageRule = rules.find(
+      (r) =>
+        r.type === PricingRuleType.PACKAGE_TYPE_SURCHARGE &&
+        r.conditions.packageTypes?.includes(packageType),
     );
 
     if (packageRule) {
@@ -297,7 +295,7 @@ export class PricingService {
   private static getPeakHourSurcharge(
     rules: IPricingRule[],
     isPeakHour: boolean,
-    scheduledTime?: Date
+    scheduledTime?: Date,
   ): { isPeak: boolean; peakType?: PeakHourType; amount: number } {
     if (!isPeakHour) {
       return { isPeak: false, amount: 0 };
@@ -325,9 +323,10 @@ export class PricingService {
     }
 
     // Check for peak hour rule
-    const peakRule = rules.find(r =>
-      r.type === PricingRuleType.PEAK_HOUR_SURCHARGE &&
-      r.conditions.peakHourTypes?.includes(peakType!)
+    const peakRule = rules.find(
+      (r) =>
+        r.type === PricingRuleType.PEAK_HOUR_SURCHARGE &&
+        r.conditions.peakHourTypes?.includes(peakType!),
     );
 
     if (peakRule) {
@@ -350,7 +349,7 @@ export class PricingService {
 
   private static async getAreaSurcharge(
     pickupArea: string,
-    deliveryArea: string
+    deliveryArea: string,
   ): Promise<{ pickup: number; delivery: number; total: number }> {
     const [pickupPricing, deliveryPricing] = await Promise.all([
       AreaPricingModel.findOne({
@@ -401,14 +400,14 @@ export class PricingService {
 
   static async calculateDistance(
     origin: [number, number],
-    destination: [number, number]
+    destination: [number, number],
   ): Promise<IDistanceMatrix> {
     // TODO: Integrate with Google Maps API or OpenStreetMap
     // For now, use Haversine formula for approximate distance
-    
+
     const distanceMeters = this.haversineDistance(origin, destination);
     const distanceKm = distanceMeters / 1000;
-    
+
     // Estimate duration: assuming average speed of 30 km/h in city
     const durationSeconds = (distanceKm / 30) * 3600;
 
@@ -436,19 +435,16 @@ export class PricingService {
     };
   }
 
-  static haversineDistance(
-    coord1: [number, number],
-    coord2: [number, number]
-  ): number {
+  static haversineDistance(coord1: [number, number], coord2: [number, number]): number {
     const R = 6371000; // Earth's radius in meters
-    const lat1 = coord1[1] * Math.PI / 180;
-    const lat2 = coord2[1] * Math.PI / 180;
-    const dLat = (coord2[1] - coord1[1]) * Math.PI / 180;
-    const dLon = (coord2[0] - coord1[0]) * Math.PI / 180;
+    const lat1 = (coord1[1] * Math.PI) / 180;
+    const lat2 = (coord2[1] * Math.PI) / 180;
+    const dLat = ((coord2[1] - coord1[1]) * Math.PI) / 180;
+    const dLon = ((coord2[0] - coord1[0]) * Math.PI) / 180;
 
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1) * Math.cos(lat2) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
@@ -462,7 +458,7 @@ export class PricingService {
     packageType: PackageType,
     isPeakHour: boolean,
     pickupArea: string,
-    deliveryArea: string
+    deliveryArea: string,
   ): Promise<IPricingRule[]> {
     const now = new Date();
     const hour = now.getHours();
@@ -477,7 +473,7 @@ export class PricingService {
     }).sort({ priority: 1 });
 
     // Filter rules based on conditions
-    return rules.filter(rule => {
+    return rules.filter((rule) => {
       // Check distance range
       if (rule.conditions.distanceRange) {
         // We'll check this during calculation
@@ -539,13 +535,9 @@ export class PricingService {
 
   static async updateAreaPricing(
     id: string,
-    data: Partial<IAreaPricing>
+    data: Partial<IAreaPricing>,
   ): Promise<IAreaPricing | null> {
-    return await AreaPricingModel.findByIdAndUpdate(
-      id,
-      data,
-      { new: true }
-    );
+    return await AreaPricingModel.findByIdAndUpdate(id, data, { new: true });
   }
 
   static async getAreaPricing(area: string, city: string): Promise<IAreaPricing | null> {
@@ -567,21 +559,21 @@ export class PricingService {
   }
 
   static async savePriceHistory(
-  orderId: string,
-  priceResult: IPriceResponse
-): Promise<IPriceHistory> {
-  const priceHistory = new PriceHistoryModel({
-    orderId: new Types.ObjectId(orderId),
-    priceBreakdown: priceResult.breakdown,
-    appliedRules: priceResult.breakdown.appliedRules.map((rule) => ({
-      ruleId: new Types.ObjectId(rule.ruleId),
-      name: rule.name,
-      type: rule.type,
-      amount: rule.amount,
-    })),
-    total: priceResult.total,
-  });
-  await priceHistory.save();
-  return priceHistory;
-}
+    orderId: string,
+    priceResult: IPriceResponse,
+  ): Promise<IPriceHistory> {
+    const priceHistory = new PriceHistoryModel({
+      orderId: new Types.ObjectId(orderId),
+      priceBreakdown: priceResult.breakdown,
+      appliedRules: priceResult.breakdown.appliedRules.map((rule) => ({
+        ruleId: new Types.ObjectId(rule.ruleId),
+        name: rule.name,
+        type: rule.type,
+        amount: rule.amount,
+      })),
+      total: priceResult.total,
+    });
+    await priceHistory.save();
+    return priceHistory;
+  }
 }

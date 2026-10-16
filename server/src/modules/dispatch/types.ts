@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import { OrderStatus, UserRole } from '@/types/enums.js';
 
 // Dispatch Types
 export enum DispatchStatus {
@@ -11,7 +10,6 @@ export enum DispatchStatus {
   EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
 }
-
 
 export interface IDispatchRequest {
   _id: Types.ObjectId;
@@ -83,7 +81,6 @@ export interface IBatchGroup {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 export interface IDispatchQueue {
   _id: Types.ObjectId;

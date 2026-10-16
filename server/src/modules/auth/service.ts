@@ -21,7 +21,10 @@ export class AuthService {
    * Access Token: Short-lived (15 min)
    * Refresh Token: Long-lived (7 days)
    */
-  public static generateTokens(payload: ITokenPayload): { accessToken: string; refreshToken: string } {
+  public static generateTokens(payload: ITokenPayload): {
+    accessToken: string;
+    refreshToken: string;
+  } {
     const accessToken = jwt.sign(payload, env.JWT_SECRET, {
       expiresIn: '15m',
     });
@@ -48,7 +51,7 @@ export class AuthService {
   public static verifyRefreshToken(token: string): ITokenPayload {
     try {
       return jwt.verify(token, env.JWT_REFRESH_SECRET) as ITokenPayload;
-    } catch (error) {
+    } catch {
       throw new AppError(403, 'Invalid or expired refresh token.');
     }
   }

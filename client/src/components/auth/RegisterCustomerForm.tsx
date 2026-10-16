@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRegisterMutation } from '@/hooks/queries/useAuthQueries'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FormItem, FormMessage } from '@/components/ui/form'
+import { DocumentFileUpload } from '@/components/documents/DocumentFileUpload'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,7 +16,7 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
-  selfieUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
+  selfieUrl: z.string().min(1, 'Please upload a profile photo'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
@@ -31,6 +32,7 @@ export function RegisterCustomerForm() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -44,7 +46,7 @@ export function RegisterCustomerForm() {
         ...rest,
         role: 'CUSTOMER' as const,
         email: email || undefined,
-        selfieUrl: selfieUrl || 'https://placehold.co/400',
+        selfieUrl,
       })
       navigate('/login', { state: { message: 'Account created! Please sign in.' } })
     } catch (err: unknown) {
@@ -73,11 +75,19 @@ export function RegisterCustomerForm() {
         <Input id="email" type="email" placeholder="john@example.com" {...register('email')} />
         {errors.email && <FormMessage>{errors.email.message}</FormMessage>}
       </FormItem>
-      <FormItem>
-        <Label htmlFor="selfieUrl">Profile Photo URL (optional)</Label>
-        <Input id="selfieUrl" placeholder="https://example.com/photo.jpg" {...register('selfieUrl')} />
-        {errors.selfieUrl && <FormMessage>{errors.selfieUrl.message}</FormMessage>}
-      </FormItem>
+      <Controller
+        control={control}
+        name="selfieUrl"
+        render={({ field }) => (
+          <DocumentFileUpload
+            label="Profile Photo"
+            type="selfie"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.selfieUrl?.message}
+          />
+        )}
+      />
       <FormItem>
         <Label htmlFor="password">Password</Label>
         <Input id="password" type="password" placeholder="••••••••" {...register('password')} />

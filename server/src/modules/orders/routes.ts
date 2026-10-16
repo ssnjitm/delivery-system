@@ -34,12 +34,14 @@ const CreateOrderSchema = z.object({
   packageType: z.enum(['STANDARD', 'DOCUMENT', 'PERISHABLE', 'FRAGILE', 'PHARMACY']),
   packageDescription: z.string().optional(),
   packageWeight: z.number().optional(),
-  items: z.array(z.object({
-    name: z.string(),
-    quantity: z.number().positive(),
-    price: z.number().positive(),
-    notes: z.string().optional(),
-  })),
+  items: z.array(
+    z.object({
+      name: z.string(),
+      quantity: z.number().positive(),
+      price: z.number().positive(),
+      notes: z.string().optional(),
+    }),
+  ),
   isCOD: z.boolean(),
   codAmount: z.number().optional(),
   customerNotes: z.string().optional(),
@@ -77,27 +79,15 @@ orderRoutes.post(
   '/',
   authenticateToken,
   validateBody(CreateOrderSchema),
-  OrdersController.createOrder
+  OrdersController.createOrder,
 );
 
 // Order Retrieval
-orderRoutes.get(
-  '/my',
-  authenticateToken,
-  OrdersController.getMyOrders
-);
+orderRoutes.get('/my', authenticateToken, OrdersController.getMyOrders);
 
-orderRoutes.get(
-  '/:id',
-  authenticateToken,
-  OrdersController.getOrder
-);
+orderRoutes.get('/:id', authenticateToken, OrdersController.getOrder);
 
-orderRoutes.get(
-  '/order-id/:orderId',
-  authenticateToken,
-  OrdersController.getOrderByOrderId
-);
+orderRoutes.get('/order-id/:orderId', authenticateToken, OrdersController.getOrderByOrderId);
 
 // 🆕 Dispatch Status Endpoint
 orderRoutes.get(
@@ -107,46 +97,41 @@ orderRoutes.get(
     if (!req.user) {
       throw new AppError(401, 'Authentication required.');
     }
-    
+
     const { id } = req.params;
-    
+
     // Check if user has access to this order
     const order = await OrdersService.getOrderById(id);
-    
-    const isVendor = req.user.role === UserRole.VENDOR && 
-                     order.vendorId === req.user.userId;
-    const isDriver = req.user.role === UserRole.DRIVER && 
-                     order.driverId === req.user.userId;
-    const isCustomer = (req.user.role === UserRole.CUSTOMER || req.user.role === UserRole.NORMAL_USER) && 
-                       order.customerId === req.user.userId;
+
+    const isVendor = req.user.role === UserRole.VENDOR && order.vendorId === req.user.userId;
+    const isDriver = req.user.role === UserRole.DRIVER && order.driverId === req.user.userId;
+    const isCustomer =
+      (req.user.role === UserRole.CUSTOMER || req.user.role === UserRole.NORMAL_USER) &&
+      order.customerId === req.user.userId;
     const isAdmin = req.user.role === UserRole.ADMIN;
     const isDispatch = req.user.role === UserRole.DISPATCH;
-    
+
     if (!isVendor && !isDriver && !isCustomer && !isAdmin && !isDispatch) {
       throw new AppError(403, 'You do not have access to this order.');
     }
-    
+
     const status = await DispatchStatusService.getDispatchStatus(id);
-    
+
     res.status(200).json({
       success: true,
       data: status,
     });
-  }
+  },
 );
 
 // 🆕 Price Endpoints
-orderRoutes.get(
-  '/:id/price',
-  authenticateToken,
-  OrdersController.getOrderPrice
-);
+orderRoutes.get('/:id/price', authenticateToken, OrdersController.getOrderPrice);
 
 orderRoutes.post(
   '/:id/recalculate-price',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  OrdersController.recalculateOrderPrice
+  OrdersController.recalculateOrderPrice,
 );
 
 // Order Status Management
@@ -154,7 +139,7 @@ orderRoutes.patch(
   '/:id/status',
   authenticateToken,
   validateBody(UpdateStatusSchema),
-  OrdersController.updateOrderStatus
+  OrdersController.updateOrderStatus,
 );
 
 orderRoutes.post(
@@ -162,36 +147,32 @@ orderRoutes.post(
   authenticateToken,
   requireRole(UserRole.ADMIN),
   validateBody(AssignDriverSchema),
-  OrdersController.assignDriver
+  OrdersController.assignDriver,
 );
 
 orderRoutes.post(
   '/:id/collect-cod',
   authenticateToken,
   requireRole(UserRole.DRIVER),
-  OrdersController.collectCOD
+  OrdersController.collectCOD,
 );
 
 orderRoutes.post(
   '/:id/cancel',
   authenticateToken,
   validateBody(CancelOrderSchema),
-  OrdersController.cancelOrder
+  OrdersController.cancelOrder,
 );
 
 // Order Statistics
-orderRoutes.get(
-  '/stats',
-  authenticateToken,
-  OrdersController.getOrderStats
-);
+orderRoutes.get('/stats', authenticateToken, OrdersController.getOrderStats);
 
 // Admin Routes
 orderRoutes.get(
   '/admin/all',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  OrdersController.getAllOrders
+  OrdersController.getAllOrders,
 );
 
 // OpenAPI Registration
@@ -200,7 +181,8 @@ registry.registerPath({
   path: '/orders',
   tags: ['Orders'],
   summary: 'Create a new order',
-  description: 'Create a delivery order from vendor or normal user - automatically triggers dispatch',
+  description:
+    'Create a delivery order from vendor or normal user - automatically triggers dispatch',
   security: [{ BearerAuth: [] }],
   request: {
     body: {

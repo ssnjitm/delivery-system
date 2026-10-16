@@ -17,18 +17,12 @@ import {
   DisputeStatus,
   DisputeType,
   IDispute,
-  IAdminQueryParams,
 } from './types.js';
 
 export class AdminService {
   // Dashboard Statistics
 
   static async getDashboardStats(): Promise<IDashboardStats> {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
     // User Statistics
     const [
       totalUsers,
@@ -270,7 +264,7 @@ export class AdminService {
 
   // Report Generation
 
-  static async generateOrderReport(filters: IReportFilters): Promise<{
+  static async generateOrderReport(_filters: IReportFilters): Promise<{
     orders: IOrderReport[];
     total: number;
     summary: {
@@ -294,7 +288,7 @@ export class AdminService {
     };
   }
 
-  static async generateRevenueReport(filters: IReportFilters): Promise<{
+  static async generateRevenueReport(_filters: IReportFilters): Promise<{
     report: IRevenueReport[];
     total: {
       totalDeliveries: number;
@@ -317,7 +311,7 @@ export class AdminService {
   }
 
   static async generateDriverPerformanceReport(
-    filters: IReportFilters,
+    _filters: IReportFilters,
   ): Promise<{ drivers: IDriverPerformanceReport[]; total: number }> {
     const drivers = await DriverModel.find({ isVerified: true })
       .select('fullName _id totalDeliveries rating')
@@ -339,7 +333,7 @@ export class AdminService {
   }
 
   static async generateVendorPerformanceReport(
-    filters: IReportFilters,
+    _filters: IReportFilters,
   ): Promise<{ vendors: IVendorPerformanceReport[]; total: number }> {
     const vendors = await VendorModel.find().select('businessName _id totalDeliveries').lean();
 

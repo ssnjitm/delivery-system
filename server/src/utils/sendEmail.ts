@@ -25,7 +25,7 @@ export const transporter = nodemailer.createTransport({
 // // Create test account on the fly
 // export const createTransporter = async () => {
 //     const testAccount = await nodemailer.createTestAccount();
-    
+
 //     return nodemailer.createTransport({
 //         host: 'smtp.ethereal.email',
 //         port: 587,

@@ -97,7 +97,8 @@ export type UserModelType = {
 export const isVendor = (user: IUser): user is IVendorUser => user.role === UserRole.VENDOR;
 export const isDriver = (user: IUser): user is IDriverUser => user.role === UserRole.DRIVER;
 export const isCustomer = (user: IUser): user is ICustomerUser => user.role === UserRole.CUSTOMER;
-export const isNormalUser = (user: IUser): user is INormalUser => user.role === UserRole.NORMAL_USER;
+export const isNormalUser = (user: IUser): user is INormalUser =>
+  user.role === UserRole.NORMAL_USER;
 
 // DTOs (Data Transfer Objects)
 
@@ -138,6 +139,6 @@ export interface IUserFilters {
 
 export interface INearbyDriversQuery {
   coordinates: [number, number];
-  maxDistance?: number; 
+  maxDistance?: number;
   limit?: number;
 }

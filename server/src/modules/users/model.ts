@@ -1,4 +1,4 @@
-import mongoose, { Schema, Types } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { UserRole } from '@/types/enums.js';
 import {
   IUserBase,
@@ -30,7 +30,7 @@ const GeoLocationSchema = new Schema<IGeoLocation>(
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Create 2dsphere index for geospatial queries
@@ -91,7 +91,7 @@ const UserBaseSchema = new Schema<IUserBase>(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Compound indexes for common queries
@@ -116,16 +116,13 @@ const VendorSchema = new Schema<IVendorUser>(
     totalDeliveries: { type: Number, default: 0 },
     rejectionReason: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 VendorSchema.index({ rating: -1, totalDeliveries: -1 });
 VendorSchema.index({ pickupLocation: '2dsphere' });
 
-export const VendorModel = UserModel.discriminator<IVendorUser>(
-  UserRole.VENDOR,
-  VendorSchema
-);
+export const VendorModel = UserModel.discriminator<IVendorUser>(UserRole.VENDOR, VendorSchema);
 
 // ============================================
 // Driver Discriminator
@@ -150,16 +147,13 @@ const DriverSchema = new Schema<IDriverUser>(
     totalDeliveries: { type: Number, default: 0 },
     rejectionReason: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 DriverSchema.index({ isOnline: 1, currentLocation: '2dsphere' });
 DriverSchema.index({ rating: -1, totalDeliveries: -1 });
 
-export const DriverModel = UserModel.discriminator<IDriverUser>(
-  UserRole.DRIVER,
-  DriverSchema
-);
+export const DriverModel = UserModel.discriminator<IDriverUser>(UserRole.DRIVER, DriverSchema);
 
 // ============================================
 // Customer Discriminator
@@ -177,14 +171,14 @@ const CustomerSchema = new Schema<ICustomerUser>(
     },
     defaultDeliveryAddress: { type: String, trim: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 CustomerSchema.index({ email: 1 }, { sparse: true });
 
 export const CustomerModel = UserModel.discriminator<ICustomerUser>(
   UserRole.CUSTOMER,
-  CustomerSchema
+  CustomerSchema,
 );
 
 // ============================================
@@ -202,12 +196,12 @@ const NormalUserSchema = new Schema<INormalUser>(
       match: /^\S+@\S+\.\S+$/,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 NormalUserSchema.index({ email: 1 }, { sparse: true });
 
 export const NormalUserModel = UserModel.discriminator<INormalUser>(
   UserRole.NORMAL_USER,
-  NormalUserSchema
+  NormalUserSchema,
 );

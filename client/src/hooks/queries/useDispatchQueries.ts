@@ -36,8 +36,42 @@ export function useRejectDispatch() {
 
 export function useBatchSuggestions() {
   return useMutation({
-    mutationFn: (orderIds: string[]) => api.post('/dispatch/batch/suggest', { orderIds }) as Promise<unknown> as Promise<BatchGroup[]>,
+    mutationFn: (currentOrderId: string) =>
+      api.post('/dispatch/batch/suggest', { currentOrderId }).then((envelope) => {
+        const group = unwrap<RawBatchGroup | null>(envelope)
+        if (!group) return null
+        const waypoints = group.route?.waypoints ?? []
+        const mapped: BatchGroup = {
+          _id: group.id,
+          orders: group.orderIdsDisplay ?? [],
+          route: {
+            origin: (waypoints[0]?.location?.coordinates ?? [0, 0]) as [number, number],
+            stops: waypoints.map((w) => ({
+              order: String(w.orderId),
+              location: (w.location?.coordinates ?? [0, 0]) as [number, number],
+              type: w.type === 'PICKUP' ? 'pickup' : 'delivery',
+            })),
+          },
+          totalDistance: (group.route?.totalDistance ?? 0) / 1000,
+          totalEarnings: 0,
+          score: 0,
+        }
+        return mapped
+      }),
   })
+}
+
+interface RawBatchGroup {
+  id: string
+  orderIdsDisplay?: string[]
+  route?: {
+    waypoints?: Array<{
+      orderId: string
+      type: 'PICKUP' | 'DELIVERY'
+      location?: { coordinates?: [number, number] }
+    }>
+    totalDistance?: number
+  }
 }
 
 export function useDispatchConfig() {
@@ -73,5 +107,14 @@ export function usePendingDispatchRequests() {
     queryKey: ['dispatch', 'pending'],
     queryFn: () => api.get('/dispatch/admin/pending').then(unwrap) as Promise<unknown> as Promise<DispatchRequest[]>,
     staleTime: 15_000,
+  })
+}
+
+export function useDriverPendingDispatchRequests() {
+  return useQuery({
+    queryKey: ['dispatch', 'driver', 'pending'],
+    queryFn: () => api.get('/dispatch/driver/pending').then(unwrap) as Promise<unknown> as Promise<DispatchRequest[]>,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
   })
 }

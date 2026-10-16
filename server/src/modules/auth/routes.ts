@@ -29,9 +29,18 @@ registry.registerPath({
   description: 'Returns JWT access and refresh tokens on success.',
   request: { body: { content: { 'application/json': { schema: LoginPayload } }, required: true } },
   responses: {
-    200: { description: 'Login successful', content: { 'application/json': { schema: LoginSuccessResponse } } },
-    401: { description: 'Invalid credentials', content: { 'application/json': { schema: ErrorResponse } } },
-    403: { description: 'Account suspended', content: { 'application/json': { schema: ErrorResponse } } },
+    200: {
+      description: 'Login successful',
+      content: { 'application/json': { schema: LoginSuccessResponse } },
+    },
+    401: {
+      description: 'Invalid credentials',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
+    403: {
+      description: 'Account suspended',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
   },
 });
 
@@ -45,10 +54,9 @@ registry.registerPath({
   security: [{ BearerAuth: [] }],
   responses: {
     200: { description: 'Logged out successfully' },
-    401: { description: 'Authentication required' }
-  }
+    401: { description: 'Authentication required' },
+  },
 });
-
 
 // ─────────────────────────────────────────────
 
@@ -59,10 +67,18 @@ registry.registerPath({
   tags: ['Auth'],
   summary: 'Register a vendor',
   description: 'Creates a vendor account. Starts unverified — requires manual admin approval.',
-  request: { body: { content: { 'application/json': { schema: VendorSignupPayload } }, required: true } },
+  request: {
+    body: { content: { 'application/json': { schema: VendorSignupPayload } }, required: true },
+  },
   responses: {
-    201: { description: 'Registered', content: { 'application/json': { schema: RegisterSuccessResponse } } },
-    400: { description: 'Validation error / phone taken', content: { 'application/json': { schema: ErrorResponse } } },
+    201: {
+      description: 'Registered',
+      content: { 'application/json': { schema: RegisterSuccessResponse } },
+    },
+    400: {
+      description: 'Validation error / phone taken',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
   },
 });
 
@@ -75,10 +91,18 @@ registry.registerPath({
   tags: ['Auth'],
   summary: 'Register a driver',
   description: 'Creates a driver account. Starts unverified — pending background document check.',
-  request: { body: { content: { 'application/json': { schema: DriverSignupPayload } }, required: true } },
+  request: {
+    body: { content: { 'application/json': { schema: DriverSignupPayload } }, required: true },
+  },
   responses: {
-    201: { description: 'Registered', content: { 'application/json': { schema: RegisterSuccessResponse } } },
-    400: { description: 'Validation error / phone taken', content: { 'application/json': { schema: ErrorResponse } } },
+    201: {
+      description: 'Registered',
+      content: { 'application/json': { schema: RegisterSuccessResponse } },
+    },
+    400: {
+      description: 'Validation error / phone taken',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
   },
 });
 
@@ -92,10 +116,18 @@ registry.registerPath({
   tags: ['Auth'],
   summary: 'Register a customer',
   description: 'Creates a customer account. Instantly verified and active.',
-  request: { body: { content: { 'application/json': { schema: ConsumerSignupPayload } }, required: true } },
+  request: {
+    body: { content: { 'application/json': { schema: ConsumerSignupPayload } }, required: true },
+  },
   responses: {
-    201: { description: 'Registered', content: { 'application/json': { schema: RegisterSuccessResponse } } },
-    400: { description: 'Validation error / phone taken', content: { 'application/json': { schema: ErrorResponse } } },
+    201: {
+      description: 'Registered',
+      content: { 'application/json': { schema: RegisterSuccessResponse } },
+    },
+    400: {
+      description: 'Validation error / phone taken',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
   },
 });
 
@@ -105,14 +137,20 @@ registry.registerPath({
   tags: ['Auth'],
   summary: 'Register a normal user',
   description: 'Same payload as customer. Instantly active.',
-  request: { body: { content: { 'application/json': { schema: ConsumerSignupPayload } }, required: true } },
+  request: {
+    body: { content: { 'application/json': { schema: ConsumerSignupPayload } }, required: true },
+  },
   responses: {
-    201: { description: 'Registered', content: { 'application/json': { schema: RegisterSuccessResponse } } },
-    400: { description: 'Validation error / phone taken', content: { 'application/json': { schema: ErrorResponse } } },
+    201: {
+      description: 'Registered',
+      content: { 'application/json': { schema: RegisterSuccessResponse } },
+    },
+    400: {
+      description: 'Validation error / phone taken',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
   },
 });
-
-
 
 authRoutes.post('/refresh', AuthController.refreshToken);
 registry.registerPath({
@@ -126,19 +164,18 @@ registry.registerPath({
       content: {
         'application/json': {
           schema: z.object({
-            refreshToken: z.string()
-          })
-        }
+            refreshToken: z.string(),
+          }),
+        },
       },
-      required: true
-    }
+      required: true,
+    },
   },
   responses: {
     200: { description: 'New access token generated' },
     401: { description: 'Refresh token missing' },
-    403: { description: 'Invalid or expired refresh token' }
-  }
+    403: { description: 'Invalid or expired refresh token' },
+  },
 });
-
 
 export default authRoutes;

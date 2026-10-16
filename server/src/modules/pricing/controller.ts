@@ -5,11 +5,10 @@ import { PricingService } from './service.js';
 import { IPriceRequest } from './types.js';
 
 export class PricingController {
-  
   // ============================================
   // Price Calculation
   // ============================================
-  
+
   /**
    * Calculate delivery price
    * POST /api/v1/pricing/calculate
@@ -63,7 +62,7 @@ export class PricingController {
   // ============================================
   // Area Pricing Management (Admin)
   // ============================================
-  
+
   /**
    * Create area pricing
    * POST /api/v1/pricing/admin/areas
@@ -92,7 +91,7 @@ export class PricingController {
     }
 
     // 👈 Fixed ts(2345) by explicitly casting id as a string
-    const id = req.params.id as string; 
+    const id = req.params.id as string;
     const areaPricing = await PricingService.updateAreaPricing(id, req.body);
 
     if (!areaPricing) {
@@ -130,7 +129,7 @@ export class PricingController {
   // ============================================
   // Configuration (Admin)
   // ============================================
-  
+
   /**
    * Get pricing configuration
    * GET /api/v1/pricing/admin/config

@@ -1,13 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { AppError } from '@/middlewares/auth.js';
-import { env } from '@/config/env.js';
 import { DocumentStorageProvider } from './types.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Create uploads directory if it doesn't exist
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'documents');

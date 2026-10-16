@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { AppError } from '@/middlewares/auth.js';
-import { OrderStatus, PackageType, UserRole } from '@/types/enums.js';
+import { OrderStatus } from '@/types/enums.js';
 import { UserModel, VendorModel, DriverModel } from '../users/model.js';
 import { OrderModel } from './model.js';
 import {
@@ -265,7 +265,7 @@ export class OrdersService {
 
   // Order Status Management
   static async updateOrderStatus(payload: IOrderStatusUpdatePayload): Promise<IOrderResponse> {
-    const { orderId, status, note, coordinates } = payload;
+    const { orderId, status, note } = payload;
 
     const order = await OrderModel.findById(orderId);
     if (!order) {
@@ -584,10 +584,11 @@ export class OrdersService {
    * Check if order requires special handling
    */
   private static hasSpecialHandling(items: any[]): boolean {
-    return items.some(item => 
-      item.notes?.toLowerCase().includes('fragile') ||
-      item.notes?.toLowerCase().includes('handle with care') ||
-      item.notes?.toLowerCase().includes('special')
+    return items.some(
+      (item) =>
+        item.notes?.toLowerCase().includes('fragile') ||
+        item.notes?.toLowerCase().includes('handle with care') ||
+        item.notes?.toLowerCase().includes('special'),
     );
   }
 
@@ -631,10 +632,7 @@ export class OrdersService {
     }
 
     // Only allow price recalculation for orders that haven't been picked up
-    const allowedStatuses = [
-      OrderStatus.WAITING_FOR_DRIVER,
-      OrderStatus.DRIVER_ASSIGNED,
-    ];
+    const allowedStatuses = [OrderStatus.WAITING_FOR_DRIVER, OrderStatus.DRIVER_ASSIGNED];
 
     if (!allowedStatuses.includes(order.status)) {
       throw new AppError(400, `Cannot recalculate price for order with status: ${order.status}`);
@@ -643,7 +641,7 @@ export class OrdersService {
     // Recalculate price
     const priceResult = await this.recalculatePrice(orderId);
 
-    const { distance, packageSurcharge, peakHourSurcharge, areaSurcharge, specialHandling } = 
+    const { distance, packageSurcharge, peakHourSurcharge, areaSurcharge, specialHandling } =
       priceResult.breakdown;
 
     // Update order with new pricing
@@ -658,7 +656,7 @@ export class OrdersService {
       specialHandling: specialHandling,
     };
     order.totalAmount = priceResult.total;
-    
+
     if (order.isCOD) {
       order.codAmount = priceResult.total;
     }
@@ -698,7 +696,7 @@ export class OrdersService {
 
     // Type guard to check if metadata has priceBreakdown
     const hasPriceBreakdown = (
-      metadata: any
+      metadata: any,
     ): metadata is { priceBreakdown: any; priceValidUntil?: Date } => {
       return (
         metadata &&

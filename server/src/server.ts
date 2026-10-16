@@ -5,7 +5,6 @@ import { logger } from './utils/logger.js';
 import { connectDB } from './config/database.js';
 import { redisClient } from './config/redis.js';
 
-
 const server = http.createServer(app);
 
 const startServer = async () => {
@@ -14,7 +13,7 @@ const startServer = async () => {
     await connectDB();
 
     // Explicitly wake up Redis for test now
-    await redisClient.ping(); 
+    await redisClient.ping();
 
     server.listen(env.PORT, () => {
       logger.info(`🚀Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);

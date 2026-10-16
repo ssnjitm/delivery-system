@@ -4,7 +4,7 @@ export enum UserRole {
   NORMAL_USER = 'NORMAL_USER',
   DRIVER = 'DRIVER',
   ADMIN = 'ADMIN',
-  DISPATCH = 'DISPATCH' 
+  DISPATCH = 'DISPATCH',
 }
 
 export enum OrderStatus {
@@ -16,7 +16,7 @@ export enum OrderStatus {
   NEAR_DESTINATION = 'NEAR_DESTINATION',
   DELIVERED = 'DELIVERED',
   COD_COLLECTED = 'COD_COLLECTED', // PRD: For COD specific completions
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 export enum PackageType {
@@ -24,5 +24,5 @@ export enum PackageType {
   DOCUMENT = 'DOCUMENT',
   PERISHABLE = 'PERISHABLE',
   FRAGILE = 'FRAGILE',
-  PHARMACY = 'PHARMACY'
+  PHARMACY = 'PHARMACY',
 }

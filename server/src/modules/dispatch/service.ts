@@ -1,6 +1,6 @@
 import { Types, HydratedDocument } from 'mongoose';
 import { AppError } from '@/middlewares/auth.js';
-import { OrderStatus, UserRole } from '@/types/enums.js';
+import { OrderStatus } from '@/types/enums.js';
 import { DriverModel } from '../users/model.js';
 import { OrderModel } from '../orders/model.js';
 import { DispatchRequestModel, BatchGroupModel, DispatchQueueModel } from './model.js';
@@ -13,7 +13,6 @@ import {
   IRejectOrderPayload,
   IBatchSuggestionPayload,
   IDispatchResponse,
-  IDriverMatchResponse,
   DispatchStatus,
   DEFAULT_DISPATCH_CONFIG,
   IDispatchConfig,
@@ -71,7 +70,7 @@ export class DispatchService {
     }
 
     // Calculate match scores
-    const matchedDrivers = await this.calculateMatchScores(nearbyDrivers, order);
+    const matchedDrivers = await this.calculateMatchScores(nearbyDrivers);
 
     // Create dispatch request
     const dispatchRequest = await this.createDispatchRequest(order, matchedDrivers);
@@ -86,59 +85,42 @@ export class DispatchService {
     coordinates: [number, number],
     radius: number,
   ): Promise<IDriverMatch[]> {
-    const drivers = await DriverModel.aggregate([
-      {
-        $geoNear: {
-          near: {
-            type: 'Point',
-            coordinates: coordinates,
-          },
-          distanceField: 'distance',
-          maxDistance: radius,
-          spherical: true,
+    const drivers = await DriverModel.find({
+      isOnline: true,
+      isActive: true,
+      isVerified: true,
+      'currentLocation.coordinates': {
+        $near: {
+          $geometry: { type: 'Point', coordinates },
+          $maxDistance: radius,
         },
       },
-      {
-        $match: {
-          isOnline: true,
-          isActive: true,
-          isVerified: true,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          fullName: 1,
-          phone: 1,
-          rating: 1,
-          totalDeliveries: 1,
-          distance: 1,
-          currentLocation: 1,
-          lastLocationUpdate: 1,
-        },
-      },
-      {
-        $limit: this.config.maxDriversToNotify * 2,
-      },
-    ]);
+    })
+      .limit(this.config.maxDriversToNotify * 2)
+      .lean();
 
-    return drivers.map((driver) => ({
-      driverId: driver._id,
-      driverName: driver.fullName,
-      phone: driver.phone,
-      rating: driver.rating || 0,
-      totalDeliveries: driver.totalDeliveries || 0,
-      distance: driver.distance,
-      estimatedArrivalTime: Math.ceil(driver.distance / 200), // Rough estimate: 200m/min
-      currentLocation: {
-        coordinates: driver.currentLocation.coordinates,
-        lastUpdate: driver.lastLocationUpdate || new Date(),
-      },
-      score: 0, // Will be calculated
-    }));
+    return drivers.map((driver) => {
+      const coords = (driver.currentLocation?.coordinates ?? coordinates) as [number, number];
+      const distance = this.calculateDistance(coordinates, coords);
+
+      return {
+        driverId: driver._id,
+        driverName: driver.fullName,
+        phone: driver.phone,
+        rating: driver.rating || 0,
+        totalDeliveries: driver.totalDeliveries || 0,
+        distance,
+        estimatedArrivalTime: Math.ceil(distance / 200), // Rough estimate: 200m/min
+        currentLocation: {
+          coordinates: coords,
+          lastUpdate: driver.lastLocationUpdate || new Date(),
+        },
+        score: 0, // Will be calculated
+      };
+    });
   }
 
-  static async calculateMatchScores(drivers: IDriverMatch[], order: any): Promise<IDriverMatch[]> {
+  static async calculateMatchScores(drivers: IDriverMatch[]): Promise<IDriverMatch[]> {
     const weights = this.config.scoringWeights;
 
     // Find max values for normalization
@@ -320,7 +302,6 @@ export class DispatchService {
 
       // Find more drivers
       const pickupCoords = dispatchRequest.pickupLocation.coordinates;
-      const order = await OrderModel.findById(dispatchRequest.orderId);
       const moreDrivers = await this.findNearbyDrivers(pickupCoords, newRadius);
 
       // Filter out already notified drivers
@@ -336,7 +317,7 @@ export class DispatchService {
       }
 
       // Calculate scores and notify
-      const scoredDrivers = await this.calculateMatchScores(newDrivers, order);
+      const scoredDrivers = await this.calculateMatchScores(newDrivers);
       dispatchRequest.notifiedDrivers.push(...scoredDrivers.map((d) => d.driverId));
       dispatchRequest.expiresAt = new Date(Date.now() + this.config.driverResponseTimeout * 1000);
       await dispatchRequest.save();
@@ -347,7 +328,8 @@ export class DispatchService {
 
   // Batch Optimization
 
-  static async suggestBatch(payload: IBatchSuggestionPayload): Promise<IBatchGroup | null> {    const {
+  static async suggestBatch(payload: IBatchSuggestionPayload): Promise<IBatchGroup | null> {
+    const {
       driverId,
       currentOrderId,
       maxOrders = this.config.batchMaxOrders,
@@ -597,6 +579,32 @@ export class DispatchService {
       .limit(50);
 
     return requests.map((request) => this.toDispatchResponse(request));
+  }
+
+  // List pending dispatch requests for a specific driver
+  static async getDriverPendingRequests(driverId: string): Promise<IDispatchResponse[]> {
+    const driverIdObj = new Types.ObjectId(driverId);
+
+    const requests = await DispatchRequestModel.find({
+      status: DispatchStatus.SEARCHING,
+      notifiedDrivers: driverIdObj,
+      rejectedDrivers: { $ne: driverIdObj },
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    return requests.map((request) => this.toDispatchResponse(request));
+  }
+
+  // Current dispatch status for an order (by ObjectId or display serial)
+  static async getDispatchStatusForOrder(orderId: string): Promise<IDispatchResponse | null> {
+    const filter = Types.ObjectId.isValid(orderId)
+      ? { $or: [{ orderId: new Types.ObjectId(orderId) }, { orderIdDisplay: orderId }] }
+      : { orderIdDisplay: orderId };
+
+    const request = await DispatchRequestModel.findOne(filter).sort({ createdAt: -1 });
+    return request ? this.toDispatchResponse(request) : null;
   }
 
   // Helper Methods

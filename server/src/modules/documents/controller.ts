@@ -62,6 +62,48 @@ export class DocumentsController {
   }
 
   /**
+   * Upload a document during registration (unauthenticated)
+   * POST /api/v1/documents/upload-public
+   */
+  static async uploadPublicDocument(req: Request, res: Response): Promise<void> {
+    const { type } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      throw new AppError(400, 'No file uploaded.');
+    }
+
+    if (!type || !Object.values(DocumentType).includes(type)) {
+      throw new AppError(
+        400,
+        `Valid document type is required. Allowed: ${Object.values(DocumentType).join(', ')}`,
+      );
+    }
+
+    const result = await DocumentsService.uploadPublicDocument(
+      {
+        originalName: file.originalname,
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        size: file.size,
+      },
+      type as DocumentType,
+    );
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    res.status(201).json({
+      success: true,
+      message: 'File uploaded successfully.',
+      data: {
+        url: `${baseUrl}${result.url}`,
+        fileName: result.fileName,
+        type: result.type,
+      },
+    });
+  }
+
+  /**
    * Get my documents
    * GET /api/v1/documents/my
    */

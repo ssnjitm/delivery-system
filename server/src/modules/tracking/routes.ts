@@ -18,11 +18,13 @@ const UpdateLocationSchema = z.object({
   speed: z.number().optional(),
   heading: z.number().optional(),
   batteryLevel: z.number().min(0).max(100).optional(),
-  deviceInfo: z.object({
-    platform: z.string().optional(),
-    osVersion: z.string().optional(),
-    appVersion: z.string().optional(),
-  }).optional(),
+  deviceInfo: z
+    .object({
+      platform: z.string().optional(),
+      osVersion: z.string().optional(),
+      appVersion: z.string().optional(),
+    })
+    .optional(),
 });
 
 // Routes
@@ -33,47 +35,35 @@ trackingRoutes.post(
   authenticateToken,
   requireRole(UserRole.DRIVER),
   validateBody(UpdateLocationSchema),
-  TrackingController.updateLocation
+  TrackingController.updateLocation,
 );
 
-trackingRoutes.get(
-  '/driver/:driverId',
-  authenticateToken,
-  TrackingController.getDriverLocation
-);
+trackingRoutes.get('/driver/:driverId', authenticateToken, TrackingController.getDriverLocation);
 
 trackingRoutes.get(
   '/driver/:driverId/history',
   authenticateToken,
-  TrackingController.getDriverHistory
+  TrackingController.getDriverHistory,
 );
 
 trackingRoutes.get(
   '/driver/:driverId/summary',
   authenticateToken,
-  TrackingController.getDriverSummary
+  TrackingController.getDriverSummary,
 );
 
 // Nearby drivers
-trackingRoutes.get(
-  '/nearby',
-  authenticateToken,
-  TrackingController.getNearbyDrivers
-);
+trackingRoutes.get('/nearby', authenticateToken, TrackingController.getNearbyDrivers);
 
 // Order tracking
-trackingRoutes.get(
-  '/order/:orderId',
-  authenticateToken,
-  TrackingController.trackOrder
-);
+trackingRoutes.get('/order/:orderId', authenticateToken, TrackingController.trackOrder);
 
 // Admin/Dispatch - All drivers
 trackingRoutes.get(
   '/drivers',
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
-  TrackingController.getAllDriversLocation
+  TrackingController.getAllDriversLocation,
 );
 
 // OpenAPI Registration
@@ -83,7 +73,7 @@ registry.registerPath({
   path: '/tracking/location',
   tags: ['Tracking'],
   summary: 'Update driver location',
-  description: 'Update driver\'s current GPS location (called from Flutter app)',
+  description: "Update driver's current GPS location (called from Flutter app)",
   security: [{ BearerAuth: [] }],
   request: {
     body: {

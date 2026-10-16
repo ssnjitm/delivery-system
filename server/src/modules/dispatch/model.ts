@@ -1,4 +1,4 @@
-import mongoose, { HydratedDocument, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { DispatchStatus } from './types.js';
 import { IDispatchRequest, IBatchGroup, IDispatchQueue } from './types.js';
 
@@ -73,14 +73,18 @@ const DispatchRequestSchema = new Schema<IDispatchRequest>(
       ref: 'User',
       index: true,
     },
-    rejectedDrivers: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    notifiedDrivers: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    }],
+    rejectedDrivers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    notifiedDrivers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     searchRadius: {
       type: Number,
       default: 5000,
@@ -116,7 +120,7 @@ const DispatchRequestSchema = new Schema<IDispatchRequest>(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Indexes
@@ -126,7 +130,7 @@ DispatchRequestSchema.index({ assignedDriverId: 1, status: 1 });
 
 export const DispatchRequestModel = mongoose.model<IDispatchRequest>(
   'DispatchRequest',
-  DispatchRequestSchema
+  DispatchRequestSchema,
 );
 
 // Batch Group Schema
@@ -138,27 +142,31 @@ const BatchGroupSchema = new Schema<IBatchGroup>(
       required: true,
       index: true,
     },
-    orderIds: [{
-      type: Schema.Types.ObjectId,
-      ref: 'Order',
-    }],
+    orderIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Order',
+      },
+    ],
     orderIdsDisplay: [String],
     route: {
-      waypoints: [{
-        orderId: {
-          type: Schema.Types.ObjectId,
-          ref: 'Order',
+      waypoints: [
+        {
+          orderId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Order',
+          },
+          type: {
+            type: String,
+            enum: ['PICKUP', 'DELIVERY'],
+          },
+          location: {
+            coordinates: [Number],
+            address: String,
+          },
+          sequence: Number,
         },
-        type: {
-          type: String,
-          enum: ['PICKUP', 'DELIVERY'],
-        },
-        location: {
-          coordinates: [Number],
-          address: String,
-        },
-        sequence: Number,
-      }],
+      ],
       totalDistance: Number,
       estimatedDuration: Number,
     },
@@ -179,16 +187,13 @@ const BatchGroupSchema = new Schema<IBatchGroup>(
         return ret;
       },
     },
-  }
+  },
 );
 
 BatchGroupSchema.index({ driverId: 1, status: 1 });
 BatchGroupSchema.index({ 'route.waypoints.orderId': 1 });
 
-export const BatchGroupModel = mongoose.model<IBatchGroup>(
-  'BatchGroup',
-  BatchGroupSchema
-);
+export const BatchGroupModel = mongoose.model<IBatchGroup>('BatchGroup', BatchGroupSchema);
 
 // Dispatch Queue Schema
 const DispatchQueueSchema = new Schema<IDispatchQueue>(
@@ -241,7 +246,7 @@ const DispatchQueueSchema = new Schema<IDispatchQueue>(
         return ret;
       },
     },
-  }
+  },
 );
 
 DispatchQueueSchema.index({ status: 1, priority: -1 });
@@ -249,5 +254,5 @@ DispatchQueueSchema.index({ nextRetryAt: 1 });
 
 export const DispatchQueueModel = mongoose.model<IDispatchQueue>(
   'DispatchQueue',
-  DispatchQueueSchema
+  DispatchQueueSchema,
 );

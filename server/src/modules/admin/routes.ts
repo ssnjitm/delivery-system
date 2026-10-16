@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { authenticateToken } from '@/middlewares/auth.js';
 import { UserRole } from '@/types/enums.js';
 import { AdminController } from './controller.js';
-import { validateBody } from '@/middlewares/validation.js';
 import { registry } from '@/utils/swagger.js';
 import { z } from 'zod';
 import { requireRole } from '@/middlewares/role-guard.middleware.js';

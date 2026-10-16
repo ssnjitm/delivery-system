@@ -16,10 +16,6 @@ const FindDriverSchema = z.object({
   searchRadius: z.number().optional(),
 });
 
-const AcceptOrderSchema = z.object({
-  dispatchRequestId: z.string(),
-});
-
 const RejectOrderSchema = z.object({
   reason: z.string().optional(),
 });
@@ -38,14 +34,15 @@ const UpdateConfigSchema = z.object({
   maxRetryAttempts: z.number().optional(),
   batchMaxOrders: z.number().optional(),
   batchMaxDetourDistance: z.number().optional(),
-  scoringWeights: z.object({
-    distance: z.number().optional(),
-    rating: z.number().optional(),
-    deliveryHistory: z.number().optional(),
-    availability: z.number().optional(),
-  }).optional(),
+  scoringWeights: z
+    .object({
+      distance: z.number().optional(),
+      rating: z.number().optional(),
+      deliveryHistory: z.number().optional(),
+      availability: z.number().optional(),
+    })
+    .optional(),
 });
-
 
 // Routes
 
@@ -55,7 +52,7 @@ dispatchRoutes.post(
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
   validateBody(FindDriverSchema),
-  DispatchController.findDriver
+  DispatchController.findDriver,
 );
 
 // Driver - Accept/Reject order
@@ -63,7 +60,7 @@ dispatchRoutes.post(
   '/:dispatchRequestId/accept',
   authenticateToken,
   requireRole(UserRole.DRIVER),
-  DispatchController.acceptOrder
+  DispatchController.acceptOrder,
 );
 
 dispatchRoutes.post(
@@ -71,7 +68,7 @@ dispatchRoutes.post(
   authenticateToken,
   requireRole(UserRole.DRIVER),
   validateBody(RejectOrderSchema),
-  DispatchController.rejectOrder
+  DispatchController.rejectOrder,
 );
 
 // Driver - Batch suggestions
@@ -80,14 +77,18 @@ dispatchRoutes.post(
   authenticateToken,
   requireRole(UserRole.DRIVER),
   validateBody(BatchSuggestionSchema),
-  DispatchController.suggestBatch
+  DispatchController.suggestBatch,
 );
 
 // Get dispatch status
+dispatchRoutes.get('/:orderId/status', authenticateToken, DispatchController.getDispatchStatus);
+
+// Driver - Own pending dispatch requests
 dispatchRoutes.get(
-  '/:orderId/status',
+  '/driver/pending',
   authenticateToken,
-  DispatchController.getDispatchStatus
+  requireRole(UserRole.DRIVER),
+  DispatchController.getDriverPendingRequests,
 );
 
 // Admin/Dispatch - Pending dispatch requests
@@ -95,7 +96,7 @@ dispatchRoutes.get(
   '/admin/pending',
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
-  DispatchController.getPendingRequests
+  DispatchController.getPendingRequests,
 );
 
 // Admin - Queue management
@@ -103,7 +104,7 @@ dispatchRoutes.post(
   '/admin/process-queue',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  DispatchController.processQueue
+  DispatchController.processQueue,
 );
 
 // Admin/Dispatch - Configuration
@@ -111,7 +112,7 @@ dispatchRoutes.get(
   '/admin/config',
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
-  DispatchController.getDispatchConfig
+  DispatchController.getDispatchConfig,
 );
 
 dispatchRoutes.put(
@@ -119,7 +120,7 @@ dispatchRoutes.put(
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
   validateBody(UpdateConfigSchema),
-  DispatchController.updateDispatchConfig
+  DispatchController.updateDispatchConfig,
 );
 
 // OpenAPI Registration
@@ -154,7 +155,9 @@ registry.registerPath({
   summary: 'Accept order (Driver)',
   description: 'Driver accepts a dispatch request',
   security: [{ BearerAuth: [] }],
-  parameters: [{ name: 'dispatchRequestId', in: 'path', required: true, schema: { type: 'string' } }],
+  parameters: [
+    { name: 'dispatchRequestId', in: 'path', required: true, schema: { type: 'string' } },
+  ],
   responses: {
     200: { description: 'Order accepted' },
     400: { description: 'Invalid request' },
@@ -169,7 +172,9 @@ registry.registerPath({
   summary: 'Reject order (Driver)',
   description: 'Driver rejects a dispatch request',
   security: [{ BearerAuth: [] }],
-  parameters: [{ name: 'dispatchRequestId', in: 'path', required: true, schema: { type: 'string' } }],
+  parameters: [
+    { name: 'dispatchRequestId', in: 'path', required: true, schema: { type: 'string' } },
+  ],
   responses: {
     200: { description: 'Order rejected' },
     403: { description: 'Forbidden - Driver only' },
@@ -209,6 +214,19 @@ registry.registerPath({
   responses: {
     200: { description: 'Dispatch status' },
     401: { description: 'Unauthorized' },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/dispatch/driver/pending',
+  tags: ['Dispatch'],
+  summary: 'Get own pending dispatch requests (Driver)',
+  description: 'List active dispatch requests the authenticated driver was notified about',
+  security: [{ BearerAuth: [] }],
+  responses: {
+    200: { description: 'Pending dispatch requests for the driver' },
+    403: { description: 'Forbidden - Driver only' },
   },
 });
 

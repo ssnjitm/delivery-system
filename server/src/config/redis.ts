@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { Redis } from 'ioredis';
-import { logger } from "@/utils/logger.js";
+import { logger } from '@/utils/logger.js';
 
 // Make sure dotenv is loaded at the absolute top of your entry file (server.ts)
 dotenv.config();
@@ -12,10 +12,10 @@ const isCloudRedis = redisUrl.startsWith('rediss://');
 
 // Main Redis Connection Instance
 export const redisClient = new Redis(redisUrl, {
-  maxRetriesPerRequest: null, 
+  maxRetriesPerRequest: null,
   enableReadyCheck: true,
   tls: isCloudRedis ? {} : undefined,
-  connectTimeout: 10000, 
+  connectTimeout: 10000,
 });
 
 redisClient.on('connect', () => {
@@ -32,5 +32,5 @@ export const queueConnectionOptions = {
     url: redisUrl,
     maxRetriesPerRequest: null,
     tls: isCloudRedis ? {} : undefined,
-  }
+  },
 };

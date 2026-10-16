@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { OrderStatus, PackageType, UserRole } from '@/types/enums.js';
+import { OrderStatus, PackageType } from '@/types/enums.js';
 
 // Order Types
 
@@ -27,10 +27,10 @@ export interface IOrderItem {
 export interface IOrder {
   _id: Types.ObjectId;
   orderId: string;
-  
+
   // Order Source
   source: 'VENDOR' | 'NORMAL_USER';
-  
+
   // Parties
   vendorId: Types.ObjectId;
   vendorName: string;
@@ -39,17 +39,17 @@ export interface IOrder {
   customerPhone: string;
   driverId?: Types.ObjectId;
   driverName?: string;
-  
+
   // Locations
   pickupAddress: IAddress;
   deliveryAddress: IAddress;
-  
+
   // Package Details
   packageType: PackageType;
   packageDescription?: string;
   packageWeight?: number; // in kg
   items: IOrderItem[];
-  
+
   // Pricing
   basePrice: number;
   distanceKm: number;
@@ -62,7 +62,7 @@ export interface IOrder {
     specialHandling: number;
   };
   totalAmount: number;
-  
+
   // COD
   isCOD: boolean;
   codAmount: number;
@@ -70,7 +70,7 @@ export interface IOrder {
   codCollectedAt?: Date;
   codSettled: boolean;
   codSettledAt?: Date;
-  
+
   // Status
   status: OrderStatus;
   statusHistory: {
@@ -79,24 +79,24 @@ export interface IOrder {
     note?: string;
     updatedBy?: Types.ObjectId;
   }[];
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
   assignedAt?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
-  
+
   // Tracking
   trackingCode?: string;
   estimatedDeliveryTime?: Date;
   actualDeliveryTime?: Date;
-  
+
   // Notes
   customerNotes?: string;
   driverNotes?: string;
   specialInstructions?: string;
-  
+
   // Metadata
   metadata: Record<string, unknown>;
 }
@@ -149,12 +149,12 @@ export interface IOrderResponse {
   id: string;
   orderId: string;
   source: 'VENDOR' | 'NORMAL_USER';
-  vendorId: string;       
+  vendorId: string;
   vendorName: string;
-  customerId: string;      
+  customerId: string;
   customerName: string;
   customerPhone: string;
-  driverId?: string;       
+  driverId?: string;
   driverName?: string;
   pickupAddress: IAddress;
   deliveryAddress: IAddress;
@@ -165,7 +165,7 @@ export interface IOrderResponse {
   totalAmount: number;
   isCOD: boolean;
   codAmount: number;
-  codCollected: boolean;   
+  codCollected: boolean;
   status: OrderStatus;
   statusHistory: {
     status: OrderStatus;
@@ -177,7 +177,6 @@ export interface IOrderResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 // Order Filter Types
 

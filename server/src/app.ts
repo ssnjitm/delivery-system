@@ -17,17 +17,12 @@ import dispatchRoutes from './modules/dispatch/routes.js';
 import trackingRoutes from './modules/tracking/routes.js';
 import pricingRoutes from './modules/pricing/routes.js';
 
-
-
-
 // docker compose -f docker-compose.dev.yml up
 // docker compose -f docker-compose.uat.yml up
-
 
 // Route imports MUST come before buildOpenApiDocument().
 // Each routes.ts self-registers its schemas into the OpenAPI
 // registry as a side effect of being imported.
-
 
 const app: Application = express();
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -37,7 +32,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // ─────────────────────────────────────────────
 app.use(
   helmet({
-    contentSecurityPolicy: false,   // required for Swagger UI inline assets
+    contentSecurityPolicy: false, // required for Swagger UI inline assets
     crossOriginEmbedderPolicy: false,
   }),
 );
@@ -70,18 +65,15 @@ app.get(
   }),
 );
 
-
 // Core Route Mounts
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/documents', documentRoutes); 
+app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/dispatch', dispatchRoutes);
 app.use('/api/v1/tracking', trackingRoutes);
 app.use('/api/v1/pricing', pricingRoutes);
-
-
 
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {

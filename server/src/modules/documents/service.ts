@@ -99,6 +99,35 @@ export class DocumentsService {
   }
 
   /**
+   * Upload a document for an unauthenticated registration flow.
+   * Stores the file and returns its public URL without creating a
+   * Document record (no user exists yet). The returned URL is later
+   * submitted as part of the registration payload.
+   */
+  static async uploadPublicDocument(
+    file: { originalName: string; buffer: Buffer; mimeType: string; size: number },
+    type: DocumentType,
+  ): Promise<{ url: string; fileName: string; type: DocumentType }> {
+    const config = DOCUMENT_CONFIG[type];
+    if (!config) {
+      throw new AppError(400, `Invalid document type: ${type}`);
+    }
+
+    if (file.size > config.maxFileSize) {
+      throw new AppError(400, `File too large. Max size: ${config.maxFileSize / 1024 / 1024}MB`);
+    }
+
+    if (!config.allowedMimeTypes.includes(file.mimeType)) {
+      throw new AppError(400, `Invalid file type. Allowed: ${config.allowedMimeTypes.join(', ')}`);
+    }
+
+    const guestId = `guest_${new Types.ObjectId().toString()}`;
+    const { fileName, fileUrl } = await StorageService.uploadDocument(guestId, file);
+
+    return { url: fileUrl, fileName, type };
+  }
+
+  /**
    * Get user's documents
    */
   static async getUserDocuments(query: IGetUserDocumentsQuery): Promise<IDocumentResponse[]> {

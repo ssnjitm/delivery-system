@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { AppError } from '@/middlewares/auth.js';
-import { UserRole, OrderStatus } from '@/types/enums.js';
+import { OrderStatus } from '@/types/enums.js';
 import { DriverModel } from '../users/model.js';
 import { OrderModel } from '../orders/model.js';
 import {
@@ -15,7 +15,6 @@ import {
   IOrderTrackingResponse,
   INearbyDriversQuery,
   IDriverLocationFilters,
-  ITrackingSessionFilters,
   IGeofenceEventPayload,
   IGeoLocation,
 } from './types.js';
@@ -434,7 +433,7 @@ export class TrackingService {
    * Handle geofence events
    */
   static async handleGeofenceEvent(event: IGeofenceEventPayload): Promise<void> {
-    const { orderId, type, event: eventType, coordinates } = event;
+    const { orderId, type, event: eventType } = event;
 
     // Update geofence
     await GeofenceModel.findOneAndUpdate(

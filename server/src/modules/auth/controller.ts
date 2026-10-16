@@ -2,10 +2,15 @@ import { Request, Response } from 'express';
 import { AppError } from '@/middlewares/auth.js';
 import { AuthService } from './service.js';
 import { UserRole } from '@/types/enums.js';
-import { CustomerModel, DriverModel, NormalUserModel, UserModel, VendorModel } from '../users/model.js';
+import {
+  CustomerModel,
+  DriverModel,
+  NormalUserModel,
+  UserModel,
+  VendorModel,
+} from '../users/model.js';
 
 export class AuthController {
-  
   public static async register(req: Request, res: Response): Promise<void> {
     const { phone, password, role } = req.body;
 
@@ -15,7 +20,7 @@ export class AuthController {
     }
 
     const hashedPassword = password ? await AuthService.hashPassword(password) : undefined;
-    
+
     let newUser;
 
     switch (role) {
@@ -25,9 +30,9 @@ export class AuthController {
           password: hashedPassword,
           pickupLocation: {
             type: 'Point',
-            coordinates: req.body.coordinates
+            coordinates: req.body.coordinates,
           },
-          isVerified: false
+          isVerified: false,
         });
         break;
 
@@ -35,7 +40,7 @@ export class AuthController {
         newUser = new DriverModel({
           ...req.body,
           password: hashedPassword,
-          isVerified: false 
+          isVerified: false,
         });
         break;
 
@@ -43,7 +48,7 @@ export class AuthController {
         newUser = new CustomerModel({
           ...req.body,
           password: hashedPassword,
-          isVerified: true 
+          isVerified: true,
         });
         break;
 
@@ -51,12 +56,15 @@ export class AuthController {
         newUser = new NormalUserModel({
           ...req.body,
           password: hashedPassword,
-          isVerified: true
+          isVerified: true,
         });
         break;
 
       default:
-        throw new AppError(400, 'The designated application role does not exist within this platform.');
+        throw new AppError(
+          400,
+          'The designated application role does not exist within this platform.',
+        );
     }
 
     await newUser.save();
@@ -67,8 +75,8 @@ export class AuthController {
       data: {
         userId: newUser._id,
         role: newUser.role,
-        isVerified: newUser.isVerified
-      }
+        isVerified: newUser.isVerified,
+      },
     });
   }
 
@@ -81,11 +89,17 @@ export class AuthController {
     }
 
     if (!user.isActive) {
-      throw new AppError(403, 'This profile context has been explicitly suspended by administrative action.');
+      throw new AppError(
+        403,
+        'This profile context has been explicitly suspended by administrative action.',
+      );
     }
 
     if (!user.password) {
-      throw new AppError(400, 'This user space requires security code verification (OTP-only routing setup).');
+      throw new AppError(
+        400,
+        'This user space requires security code verification (OTP-only routing setup).',
+      );
     }
 
     const credentialsMatch = await AuthService.comparePassword(password, user.password);
@@ -97,7 +111,7 @@ export class AuthController {
     const tokens = AuthService.generateTokens({
       userId: user._id.toString(),
       role: user.role,
-      phone: user.phone
+      phone: user.phone,
     });
 
     // Store refresh token in database
@@ -120,9 +134,9 @@ export class AuthController {
           email: userDoc.email,
           role: user.role,
           isActive: user.isActive,
-          isVerified: user.isVerified
-            }
-      }
+          isVerified: user.isVerified,
+        },
+      },
     });
   }
 
@@ -136,7 +150,7 @@ export class AuthController {
 
     // Verify the refresh token
     const decoded = AuthService.verifyRefreshToken(refreshToken);
-    
+
     // Check if token matches stored token in database
     const isValid = await AuthService.validateRefreshToken(decoded.userId, refreshToken);
     if (!isValid) {
@@ -153,7 +167,7 @@ export class AuthController {
     const newAccessToken = AuthService.generateAccessToken({
       userId: user._id.toString(),
       role: user.role,
-      phone: user.phone
+      phone: user.phone,
     });
 
     // Optional: Rotate refresh token for better security
@@ -166,7 +180,7 @@ export class AuthController {
       data: {
         accessToken: newAccessToken,
         // refreshToken: newRefreshToken, // Uncomment if rotating
-      }
+      },
     });
   }
 
@@ -181,7 +195,7 @@ export class AuthController {
 
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully.'
+      message: 'Logged out successfully.',
     });
   }
 }

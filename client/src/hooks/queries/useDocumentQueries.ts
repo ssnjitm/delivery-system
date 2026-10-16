@@ -3,6 +3,26 @@ import api from '@/lib/axios'
 import { unwrap } from '@/hooks/reactQuery'
 import type { Document, VerificationRequest } from '@/types/document'
 
+export interface PublicUploadResult {
+  url: string
+  fileName: string
+  type: string
+}
+
+export function useUploadPublicDocument() {
+  return useMutation({
+    mutationFn: async ({ file, type }: { file: File; type: string }): Promise<PublicUploadResult> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      const response = (await api.post('/documents/upload-public', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })) as unknown as { data: PublicUploadResult }
+      return response.data
+    },
+  })
+}
+
 export function useUploadDocument() {
   const qc = useQueryClient()
   return useMutation({

@@ -7,6 +7,7 @@ import { validateBody } from '@/middlewares/validation.js';
 import { registry } from '@/utils/swagger.js';
 import { z } from 'zod';
 import { requireRole } from '@/middlewares/role-guard.middleware.js';
+import { publicUploadLimiter } from '@/middlewares/rateLimiter.middleware.js';
 
 const documentRoutes = Router();
 
@@ -17,6 +18,17 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
 });
+
+// ============================================
+// Public Routes (Registration)
+// ============================================
+
+documentRoutes.post(
+  '/upload-public',
+  publicUploadLimiter,
+  upload.single('file'),
+  DocumentsController.uploadPublicDocument,
+);
 
 // ============================================
 // User Routes
@@ -83,6 +95,40 @@ documentRoutes.get(
 // ============================================
 // OpenAPI Registration
 // ============================================
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents/upload-public',
+  tags: ['Documents'],
+  summary: 'Upload a document during registration',
+  description:
+    'Unauthenticated upload used by the registration forms. Stores the file and returns an absolute URL to be submitted in the signup payload.',
+  request: {
+    body: {
+      content: {
+        'multipart/form-data': {
+          schema: z.object({
+            file: z.any(),
+            type: z.enum([
+              'citizenship',
+              'driving_license',
+              'bluebook',
+              'selfie',
+              'business_logo',
+              'business_photo',
+              'profile_photo',
+            ]),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: { description: 'File uploaded successfully' },
+    400: { description: 'Invalid file or document type' },
+    429: { description: 'Too many upload requests' },
+  },
+});
 
 registry.registerPath({
   method: 'post',

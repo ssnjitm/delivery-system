@@ -20,7 +20,7 @@ const GeoLocationSchema = new Schema<IGeoLocation>(
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 GeoLocationSchema.index({ coordinates: '2dsphere' });
@@ -34,7 +34,7 @@ const AddressSchema = new Schema<IAddress>(
     landmark: { type: String, trim: true },
     coordinates: { type: GeoLocationSchema, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Order Item Schema
@@ -46,7 +46,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     total: { type: Number, required: true, min: 0 },
     notes: { type: String, trim: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Status History Schema
@@ -61,7 +61,7 @@ const StatusHistorySchema = new Schema(
     note: { type: String, trim: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Main Order Schema
@@ -157,7 +157,7 @@ const OrderSchema = new Schema<IOrder>(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Indexes for Performance
@@ -191,7 +191,6 @@ OrderSchema.pre('save', async function (this: HydratedDocument<IOrder>) {
       note: 'Order created',
     });
   }
- 
 });
 
 export const OrderModel = mongoose.model<IOrder>('Order', OrderSchema);

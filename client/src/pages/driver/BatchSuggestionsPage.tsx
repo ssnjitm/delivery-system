@@ -9,13 +9,14 @@ import { Package } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
 
 export default function BatchSuggestionsPage() {
-  const [orderIds, setOrderIds] = useState('')
+  const [orderId, setOrderId] = useState('')
   const batchSuggestions = useBatchSuggestions()
+  const result = batchSuggestions.data
 
   const handleGetSuggestions = () => {
-    const ids = orderIds.split(',').map((s) => s.trim()).filter(Boolean)
-    if (ids.length >= 2) {
-      batchSuggestions.mutate(ids)
+    const id = orderId.trim()
+    if (id) {
+      batchSuggestions.mutate(id)
     }
   }
 
@@ -27,12 +28,12 @@ export default function BatchSuggestionsPage() {
 
       <div className="space-y-4">
         <FormItem>
-          <Label>Order IDs (comma-separated)</Label>
+          <Label>Current Order ID</Label>
           <div className="flex gap-2">
             <Input
-              value={orderIds}
-              onChange={(e) => setOrderIds(e.target.value)}
-              placeholder="e.g. id1, id2, id3"
+              value={orderId}
+              onChange={(e) => setOrderId(e.target.value)}
+              placeholder="e.g. ORD-..."
             />
             <Button onClick={handleGetSuggestions} disabled={batchSuggestions.isPending}>
               <Package className="mr-2 h-4 w-4" />
@@ -42,13 +43,13 @@ export default function BatchSuggestionsPage() {
         </FormItem>
       </div>
 
-      {batchSuggestions.data && batchSuggestions.data.length > 0 ? (
+      {result ? (
         <BatchSuggestions
-          suggestions={batchSuggestions.data}
+          suggestions={[result]}
           onAccept={handleAccept}
         />
-      ) : batchSuggestions.data?.length === 0 ? (
-        <EmptyState message="No batch suggestions" description="Try different order combinations" />
+      ) : batchSuggestions.isSuccess && !result ? (
+        <EmptyState message="No batch suggestions" description="Try a different order" />
       ) : null}
     </div>
   )

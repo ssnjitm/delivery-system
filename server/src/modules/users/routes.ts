@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import {  requireRole } from '@/middlewares/role-guard.middleware.js';
+import { requireRole } from '@/middlewares/role-guard.middleware.js';
 import { UserRole } from '@/types/enums.js';
 import { UserController } from './controller.js';
-import { validateBody } from '@/middlewares/validation.js';
 import { registry } from '@/utils/swagger.js';
-import { z } from 'zod';
 import { authenticateToken } from '@/middlewares/auth.js';
 
 const userRoutes = Router();
@@ -21,13 +19,13 @@ userRoutes.post(
   '/driver/location',
   authenticateToken,
   requireRole(UserRole.DRIVER),
-  UserController.updateDriverLocation
+  UserController.updateDriverLocation,
 );
 userRoutes.post(
   '/driver/toggle-status',
   authenticateToken,
   requireRole(UserRole.DRIVER),
-  UserController.toggleDriverStatus
+  UserController.toggleDriverStatus,
 );
 
 // Admin Only Routes
@@ -37,19 +35,19 @@ userRoutes.get(
   '/vendors',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.getVendors
+  UserController.getVendors,
 );
 userRoutes.post(
   '/vendors/:id/approve',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.approveVendor
+  UserController.approveVendor,
 );
 userRoutes.post(
   '/vendors/:id/reject',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.rejectVendor
+  UserController.rejectVendor,
 );
 
 // Driver Management
@@ -57,25 +55,25 @@ userRoutes.get(
   '/drivers',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.getDrivers
+  UserController.getDrivers,
 );
 userRoutes.get(
   '/drivers/nearby',
   authenticateToken,
   requireRole(UserRole.ADMIN, UserRole.DISPATCH),
-  UserController.getNearbyDrivers
+  UserController.getNearbyDrivers,
 );
 userRoutes.post(
   '/drivers/:id/verify',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.verifyDriver
+  UserController.verifyDriver,
 );
 userRoutes.post(
   '/drivers/:id/reject',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.rejectDriver
+  UserController.rejectDriver,
 );
 
 // Customer & User Management
@@ -83,13 +81,13 @@ userRoutes.get(
   '/customers',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.getCustomers
+  UserController.getCustomers,
 );
 userRoutes.get(
   '/normal-users',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.getNormalUsers
+  UserController.getNormalUsers,
 );
 
 // Admin Utilities
@@ -97,19 +95,14 @@ userRoutes.get(
   '/stats',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.getUserStats
+  UserController.getUserStats,
 );
-userRoutes.get(
-  '/:id',
-  authenticateToken,
-  requireRole(UserRole.ADMIN),
-  UserController.getUserById
-);
+userRoutes.get('/:id', authenticateToken, requireRole(UserRole.ADMIN), UserController.getUserById);
 userRoutes.patch(
   '/:id/toggle-status',
   authenticateToken,
   requireRole(UserRole.ADMIN),
-  UserController.toggleUserStatus
+  UserController.toggleUserStatus,
 );
 
 // OpenAPI Registration
